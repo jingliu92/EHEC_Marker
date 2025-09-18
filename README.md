@@ -139,21 +139,43 @@ GGAGCCACGCTCACCGATGGTCTACTGACAGTTCGCTTTTTAAGTGATGATAATCTGCGTTGCCAGTAG
 ```
 ## Download assemblies from NCBI
 ### Top 7 EHEC Strains
+O157:H7
 O26:H11
 O45:H2
 O103:H2
 O111:H8
 O121:H19
 O145:H28
-O157:H7
 ```
-# Get ALL complete genomes for Escherichia coli O157:H7
+# Get ALL complete genomes for Escherichia coli 
 ./datasets download genome taxon "Escherichia coli O157:H7" \
   --assembly-level complete \
   --filename o157_complete.zip
 
-# Unzip them
-unzip o157_complete.zip -d o157_assemblies
+./datasets download genome taxon "Escherichia coli O26:H11" \
+  --assembly-level complete \
+  --filename o26_complete.zip
 
+./datasets download genome taxon "Escherichia coli O45:H2" \
+  --assembly-level complete \
+  --filename o45_complete.zip
+
+./datasets download genome taxon "Escherichia coli O103:H2" \
+  --assembly-level complete \
+  --filename o103_complete.zip
+
+./datasets download genome taxon "Escherichia coli O111:H8" \
+  --assembly-level complete \
+  --filename o111_complete.zip
+
+./datasets download genome taxon "Escherichia coli O121:H19" \
+  --assembly-level complete \
+  --filename o121_complete.zip
+
+./datasets download genome taxon "Escherichia coli O145:H28" \
+  --assembly-level complete \
+  --filename o145_complete.zip
+
+unzip o157_ref.zip -d o157_assemblies
 ```
 

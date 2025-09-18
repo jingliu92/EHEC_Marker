@@ -147,7 +147,13 @@ O121:H19
 O145:H28
 O157:H7
 ```
-datasets download genome taxon "Escherichia coli O157:H7" --reference --assembly-level complete --filename o157_ref.zip
-unzip o157_ref.zip -d o157_assemblies
+# Get ALL complete genomes for Escherichia coli O157:H7
+./datasets download genome taxon "Escherichia coli O157:H7" \
+  --assembly-level complete \
+  --filename o157_complete.zip
+
+# Unzip them
+unzip o157_complete.zip -d o157_assemblies
+
 ```
 

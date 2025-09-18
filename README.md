@@ -181,21 +181,26 @@ unzip o157_ref.zip -d o157_assemblies
 
 ### EPEC Strains
 ```
-./datasets download genome taxon "Escherichia coli O55:H6" \
+./datasets download genome taxon "Escherichia coli O55:H7" \
   --assembly-level complete \
   --filename o55_complete.zip
 
-./datasets download genome taxon "Escherichia coli O114:H2" \
+./datasets download genome taxon "Escherichia coli O127:H6" \
   --assembly-level complete \
-  --filename o114_complete.zip
+  --filename o127_complete.zip
+
+./datasets download genome taxon "Escherichia coli O26:H11" \
+  --assembly-level complete \
+  --filename o26_H11_complete.zip
+
+./datasets download genome taxon "Escherichia coli O111:H2" \
+  --assembly-level complete \
+  --filename o111_H2_complete.zip
 
 ./datasets download genome taxon "Escherichia coli O142:H6" \
   --assembly-level complete \
   --filename o142_complete.zip
 
-./datasets download genome taxon "Escherichia coli O127:H6" \
-  --assembly-level complete \
-  --filename o127_complete.zip
 
 ```
 

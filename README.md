@@ -153,7 +153,6 @@ O145:H28
   --filename o157_complete.zip
 
 ./datasets download genome taxon "Escherichia coli O26:H11" \
-  --assembly-level complete \
   --filename o26_complete.zip
 
 ./datasets download genome taxon "Escherichia coli O45:H2" \
@@ -202,5 +201,56 @@ unzip o157_ref.zip -d o157_assemblies
   --filename o142_complete.zip
 
 
+```
+## Change file name
+```
+for d in EHEC_*; do
+  [ -d "$d" ] || continue
+  folder=$(basename "$d")
+  cd "$d"
+  for f in *.fna; do
+    mv "$f" "${folder}_${f}"
+  done
+  cd ..
+done
+
+for d in EPEC_*; do
+  [ -d "$d" ] || continue
+  folder=$(basename "$d")
+  cd "$d"
+  for f in *.fna; do
+    mv "$f" "${folder}_${f}"
+  done
+  cd ..
+done
+
+```
+```
+DEST_DIR="assembly"
+# Loop through each folder and copy its contents
+
+for folder in EHEC_*; do
+    if [ -d "$folder" ]; then
+        cp "$folder"/* "$DEST_DIR"/
+    fi
+done
+```
+
+# ABRicate with a custom DB:
+```
+mkdir -p /home/jing/miniconda3/envs/abricate/db/ehec_markers
+cp ehec_markers.fna /home/jing/miniconda3/envs/abricate/db/ehec_markers/sequences
+abricate --setupdb
+
+mkdir -p abricate_out
+find all_sample -type f -name "*.fna" -print0 \
+| while IFS= read -r -d '' f; do
+  base=$(basename "$f" .fna)
+  echo "[ABRicate] $base"
+  abricate --db ehec_markers --minid 98 --mincov 90 "$f" > "abricate_out/${base}.tsv"
+done
+
+abricate --summary abricate_out/*.tsv > abricate_summary.tsv
+echo "Wrote abricate_summary.tsv"
 ```
 

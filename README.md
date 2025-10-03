@@ -44,70 +44,15 @@ TATTACTTTTAACCAGATCCTTATGCAATCAAGAATGAGCAAAGCAGCATTGCTGTTGCTTGATAACTCATATCAGATAT
 
 ```
 ## Download assemblies from NCBI
-### Top 7 EHEC Strains
-O157:H7
-O26:H11
-O45:H2
-O103:H2
-O111:H8
-O121:H19
-O145:H28
 ```
 # Get ALL complete genomes for Escherichia coli 
-./datasets download genome taxon "Escherichia coli O157:H7" \
+./datasets download genome taxon "Escherichia coli" \
   --assembly-level complete \
-  --filename o157_complete.zip
-
-./datasets download genome taxon "Escherichia coli O26:H11" \
-  --filename o26_complete.zip
-
-./datasets download genome taxon "Escherichia coli O45:H2" \
-  --assembly-level complete \
-  --filename o45_complete.zip
-
-./datasets download genome taxon "Escherichia coli O103:H2" \
-  --assembly-level complete \
-  --filename o103_complete.zip
-
-./datasets download genome taxon "Escherichia coli O111:H8" \
-  --assembly-level complete \
-  --filename o111_complete.zip
-
-./datasets download genome taxon "Escherichia coli O121:H19" \
-  --assembly-level complete \
-  --filename o121_complete.zip
-
-./datasets download genome taxon "Escherichia coli O145:H28" \
-  --assembly-level complete \
-  --filename o145_complete.zip
-
-unzip o157_ref.zip -d o157_assemblies
+  --filename E.coli_complete.zip
 ```
+<img width="1326" height="66" alt="image" src="https://github.com/user-attachments/assets/54e1ffe6-672e-4e96-bb2d-cc054760e37e" />
+A total of **11,321** genome records were found and downloaded.
 
-### EPEC Strains
-```
-./datasets download genome taxon "Escherichia coli O55:H7" \
-  --assembly-level complete \
-  --filename o55_complete.zip
-
-./datasets download genome taxon "Escherichia coli O127:H6" \
-  --assembly-level complete \
-  --filename o127_complete.zip
-
-./datasets download genome taxon "Escherichia coli O26:H11" \
-  --assembly-level complete \
-  --filename o26_H11_complete.zip
-
-./datasets download genome taxon "Escherichia coli O111:H2" \
-  --assembly-level complete \
-  --filename o111_H2_complete.zip
-
-./datasets download genome taxon "Escherichia coli O142:H6" \
-  --assembly-level complete \
-  --filename o142_complete.zip
-
-
-```
 ## Change file name
 ```
 for d in EHEC_*; do

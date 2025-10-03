@@ -103,8 +103,8 @@ It does this by comparing the genome sequences against curated databases. Some c
 
 - PlasmidFinder – for plasmid replicons
 
-- CARD – for comprehensive antibiotic resistance
-** In our case, we will customize a databased by using the genes that we are interested **
+- CARD – for comprehensive antibiotic resistance \
+- In our case, we will customize a databased by using the genes that we are interested ***
 
 Key features of ABRicate:
 

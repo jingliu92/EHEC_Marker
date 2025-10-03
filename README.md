@@ -89,7 +89,31 @@ done
 ## Search target genes in the downloaded assemblies
 ### Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
 ### Option 2: Use package ABRicate.
-#### What is ABRicate
+#### What is ABRicate?
+ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:
+- Antibiotic resistance genes (ARGs)
+- Virulence factors
+- Plasmid-associated genes
+
+It does this by comparing the genome sequences against curated databases. Some commonly used databases include:
+
+ResFinder – for antimicrobial resistance genes
+
+VFDB – for virulence factors
+
+PlasmidFinder – for plasmid replicons
+
+CARD – for comprehensive antibiotic resistance
+
+Key features of ABRicate:
+
+Works on genome assemblies (FASTA files).
+
+Reports hits with identity and coverage thresholds, so you know how well a gene matches.
+
+Can scan multiple genomes in batch mode.
+
+Focused on functional interpretation—e.g., it tells you which resistance genes are present, rather than showing raw sequence similarity.
 # ABRicate with a custom DB:
 ```
 mkdir -p /home/jing/miniconda3/envs/abricate/db/ehec_markers

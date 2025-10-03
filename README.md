@@ -86,7 +86,10 @@ for folder in EHEC_*; do
     fi
 done
 ```
-
+## Search target genes in the downloaded assemblies
+### Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
+### Option 2: Use package ABRicate.
+#### What is ABRicate
 # ABRicate with a custom DB:
 ```
 mkdir -p /home/jing/miniconda3/envs/abricate/db/ehec_markers

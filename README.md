@@ -1,4 +1,12 @@
 # EHEC_Marker
+
+EPEC is defined as eae+
+EHEC is defined as eae+ stx+
+EAEC (pathogenic epidemic isolate only) is defined as stx+  or stx+/subA+
+EAEC needs to have aggR+
+
+
+
 ## Tasks:
 1. Identify all eae+ isolates
 2. Find their linkage to stx, esp, ureD and z2098. Then create the linkage table.

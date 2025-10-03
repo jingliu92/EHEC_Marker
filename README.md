@@ -1,4 +1,11 @@
 # EHEC_Marker
+## Tasks:
+1. Identify all eae+ isolates
+2. Find their linkage to stx, esp, ureD and z2098. Then create the linkage table.
+3. Find aggR that are positive for stx or stx/subA
+4. Find eae negative but stx+ isolates (STEC). STEC is not important for food safety. 
+
+
 ## Genes interested
 ```
 eae (intimin; include a few alleles if you care about subtyping, e.g., β, γ, ε).

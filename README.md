@@ -121,15 +121,17 @@ conda activate abricate
 
 # Check that it works
 abricate --version
-
 ```
-
-# ABRicate with a custom DB:
+## Make Our Custom Marker DB
+Once ABRicate is installed, make a custom database for our interested markers:
 ```
 mkdir -p /home/jing/miniconda3/envs/abricate/db/ehec_markers
 cp ehec_markers.fna /home/jing/miniconda3/envs/abricate/db/ehec_markers/sequences
 abricate --setupdb
-
+abricate --list   # should now show ehec_markers
+```
+## ABRicate with a custom DB:
+```
 mkdir -p abricate_out
 find all_sample -type f -name "*.fna" -print0 \
 | while IFS= read -r -d '' f; do

@@ -107,10 +107,11 @@ It does this by comparing the genome sequences against curated databases. Some c
 - In our case, we will customize a databased by using the genes that we are interested.
 
 Key features of ABRicate:
-Works on genome assemblies (FASTA files).
-Reports hits with identity and coverage thresholds, so you know how well a gene matches.
-Can scan multiple genomes in batch mode.
-Focused on functional interpretation—e.g., it tells you which resistance genes are present, rather than showing raw sequence similarity.
+- Works on genome assemblies (FASTA files).
+- Reports hits with identity and coverage thresholds, so you know how well a gene matches.
+- Can scan multiple genomes in batch mode.
+- Focused on functional interpretation—e.g., it tells you which resistance genes are present, rather than showing raw sequence similarity.
+
 # ABRicate with a custom DB:
 ```
 mkdir -p /home/jing/miniconda3/envs/abricate/db/ehec_markers

@@ -144,3 +144,32 @@ abricate --summary abricate_out/*.tsv > abricate_summary.tsv
 echo "Wrote abricate_summary.tsv"
 ```
 
+## Make presence/absence matrix + classification
+```
+# save as make_matrix_and_classify.py; run: python make_matrix_and_classify.py
+import csv, pandas as pd
+
+genes = ['stx1','stx2','eae','espK','espV','Z2098','ureD']
+rows=[]
+with open("abricate_summary.tsv") as fh:
+    r=csv.DictReader(fh, delimiter="\t")
+    for row in r:
+        rec={'sample':row['FILE']}
+        for g in genes:
+            rec[g]=int(row.get(g,'0') not in ('','0','0.00','NA'))
+        rows.append(rec)
+
+df=pd.DataFrame(rows).sort_values('sample')
+
+def classify(r):
+    stx = r['stx1'] or r['stx2']
+    support = r['espK']+r['espV']+r['Z2098']+r['ureD']
+    if not stx: return "Non-EHEC"
+    if r['eae'] or support>=2: return "EHEC"
+    if support==1: return "Possible EHEC"
+    return "Non-EHEC"
+
+df['CLASS']=df.apply(classify,axis=1)
+df.to_csv("marker_matrix.tsv", sep="\t", index=False)
+print("Wrote marker_matrix.tsv")
+```

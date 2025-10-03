@@ -1,10 +1,15 @@
 # EHEC_Marker
 
-EPEC is defined as eae+ \
-EHEC is defined as eae+ stx+ \
-EAEC (pathogenic epidemic isolate only) is defined as stx+  or stx+/subA+ \
-EAEC needs to have aggR+ \
+## Genes interested
+`eae` (intimin; include a few alleles if you care about subtyping, e.g., β, γ, ε). \
+`stx1` and `stx2` (include major subtypes: stx1a/1c/1d; stx2a–2g to avoid false negatives). \
+`espK, espV and espN` (T3SS effectors; often on OI-122 / related islands). \
+`aggR`: Encodes the AggR protein, which is involved in the expression of several virulence determinants in both plasmids and chromosomes. The AggR protein is crucial for the adherence of EAEC to host cells and is associated with the pathogenesis of diarrhea in both children and adults. \
+`subA`: Subtilase cytotoxin 
+`Z2098` (OI-122 marker; locus tag from the O157 Sakai island). \
+`ureD` (urease accessory subunit—present in some clades; include a couple of E. coli hits to avoid over-stringency). \
 
+<img width="585" height="361" alt="image" src="https://github.com/user-attachments/assets/6ebcdb81-8a39-4c00-b477-650429ab189d" />
 
 
 ## Tasks:

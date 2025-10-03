@@ -1,9 +1,9 @@
 # EHEC_Marker
 
-EPEC is defined as eae+
-EHEC is defined as eae+ stx+
-EAEC (pathogenic epidemic isolate only) is defined as stx+  or stx+/subA+
-EAEC needs to have aggR+
+EPEC is defined as eae+ \
+EHEC is defined as eae+ stx+ \
+EAEC (pathogenic epidemic isolate only) is defined as stx+  or stx+/subA+ \
+EAEC needs to have aggR+ \
 
 
 

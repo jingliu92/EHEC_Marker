@@ -111,6 +111,18 @@ Key features of ABRicate:
 - Reports hits with identity and coverage thresholds, so you know how well a gene matches.
 - Can scan multiple genomes in batch mode.
 - Focused on functional interpretation—e.g., it tells you which resistance genes are present, rather than showing raw sequence similarity.
+## Install `ABRicate` in Our Server
+```
+# Create a clean environment for abricate
+conda create -n abricate -c bioconda -c conda-forge abricate
+
+# Activate it
+conda activate abricate
+
+# Check that it works
+abricate --version
+
+```
 
 # ABRicate with a custom DB:
 ```

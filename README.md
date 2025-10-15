@@ -39,15 +39,14 @@ CCCTTCTGGCCTCCCGATATATTAATGATTTTCTCTTCTCCTGGTGCAAGAAAAACATTTGACATAATGCTTTCAGTTGC
 >aggR
 TATTACTTTTAACCAGATCCTTATGCAATCAAGAATGAGCAAAGCAGCATTGCTGTTGCTTGATAACTCATATCAGATATCACAGATATCTAATATGATAGGATTTT
 >Z2098
-
+CTGAGCGAATGCCTGAAAAGAGCCAGAACGTGCTTATTTCGATGAATATCGATAGCGAGGCTGGGCCATTAATATATTCCGCACGCTATCTCGGAGGCACGTTCCGGCGCGGAGGTATAGCAGTTAGTCCGGGTAATGATCTTAGGCAAGCAACCCACTGGATGTCGCTACCAGAACCGCCGCAGGAGGTGAATCAATGA
 >ureD
-
+TGAGTTTTTCGCGTATGTCTTCCAGTTGCGTTTCATTCCCCAGGTAGAACAGCATCGTTCCCACCCATGGTTTCCGGGCAACGCAGGTAAGTTCTCCATTGGCCACGTGCAGACGCTCAATCAACAGCGGAGAACCGTCGACCCATATCTCCAGACGGTTAGCGAGTGTTCCGTGGCTGAAGGTTTCT
 ```
 ## Download assemblies from NCBI
 ```
 # Get ALL complete genomes for Escherichia coli 
 ./datasets download genome taxon "Escherichia coli" \
-  --assembly-level complete \
   --filename E.coli_complete.zip
 ```
 <img width="1326" height="66" alt="image" src="https://github.com/user-attachments/assets/54e1ffe6-672e-4e96-bb2d-cc054760e37e" />
@@ -137,7 +136,7 @@ find all_sample -type f -name "*.fna" -print0 \
 | while IFS= read -r -d '' f; do
   base=$(basename "$f" .fna)
   echo "[ABRicate] $base"
-  abricate --db ehec_markers --minid 98 --mincov 90 "$f" > "abricate_out/${base}.tsv"
+  abricate --db ehec_markers --minid 80 --mincov 90 "$f" > "abricate_out/${base}.tsv"
 done
 
 abricate --summary abricate_out/*.tsv > abricate_summary.tsv

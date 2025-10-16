@@ -135,6 +135,43 @@ cd blast_hits_only
 ls -l . | wc -l
 # 1984
 ```
+### Add headers to each tsv file
+```
+# Define both possible headers
+hdr11=$'qseqid\tsseqid\tpident\tlength\tqlen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore'
+hdr10=$'qseqid\tsseqid\tpident\tlength\tqstart\tqend\tsstart\tsend\tevalue\tbitscore'
+
+# Walk all *_hits.tsv (adjust the root path if needed)
+find ./blast_hits_only -type f -name "*_hits.tsv" -print0 | while IFS= read -r -d '' f; do
+  # Normalize line endings (avoids weird header checks)
+  perl -pi -e 's/\r$//' "$f"
+
+  # Skip if header is already present
+  if head -n1 "$f" | grep -q $'^qseqid\t'; then
+    echo "Header already present: $f"
+    continue
+  fi
+
+  # Detect column count from the first non-empty line
+  nfields=$(awk 'NF{print NF; exit}' "$f")
+  if [ -z "$nfields" ]; then
+    # empty file: choose 11-col header by default
+    header="$hdr11"
+  elif [ "$nfields" -eq 11 ]; then
+    header="$hdr11"
+  elif [ "$nfields" -eq 10 ]; then
+    header="$hdr10"
+  else
+    echo "⚠️  Unknown column count ($nfields) in $f — not modifying."
+    continue
+  fi
+
+  # Prepend header safely
+  tmp=$(mktemp)
+  { printf "%s\n" "$header"; cat "$f"; } > "$tmp" && mv "$tmp" "$f"
+  echo "Added header to: $f"
+done
+```
 
 🧾 Step 5: Summarize presence/absence (Python)
 
@@ -175,7 +212,7 @@ print(summary)
 # Run 
 ```
 python summarize_blast_results.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
-
+```
 ### Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)
 ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:

@@ -129,12 +129,15 @@ for f in $(find /home/jing/E.coli/ecoli_all -name "*.fna"); do
   fi
 done
 ```
+<img width="1047" height="103" alt="image" src="https://github.com/user-attachments/assets/54048c16-85f2-4a3a-b6e2-f865b4e398f3" />
+
 ### Check how many assemblies have hits? (1984)
 ```
 cd blast_hits_only
 ls -l . | wc -l
 # 1984
 ```
+
 ### Add headers to each tsv file
 ```
 # Define both possible headers

@@ -55,6 +55,81 @@ In total, 11,321 genome assemblies were retrieved and downloaded. The assemblies
 
 ## Search target genes in the downloaded assemblies
 ### Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
+🧬 Step 1: Prepare your custom marker database
+We already have all your marker gene FASTA sequences (e.g., eae, espK, espV, Z2098, stx1, stx2, ureD, etc.), put them together into one FASTA file:
+```
+cat eae.fasta espK.fasta espV.fasta Z2098.fasta stx1.fasta stx2.fasta ureD.fasta > ehec_markers.fna
+```
+
+Then create a BLAST database:
+```
+makeblastdb -in ehec_markers.fna -dbtype nucl -out ehec_markers
+```
+
+✅ This will create files:
+```
+ehec_markers.nsq
+ehec_markers.nin
+ehec_markers.nhr
+```
+🧫 Step 2: Run BLAST for one genome assembly for testing purpose:
+```
+blastn -query ehec_markers.fna \
+       -subject /home/jing/E.coli/EHEC/EHEC_O111_H8/EHEC_O111_H8_GCA_049489415.1_ASM4948941v1_genomic.fna \
+       -out EHEC_O111_H8_GCA_049489415.1_markers.tsv \
+       -outfmt "6 qseqid sseqid pident length qlen slen qstart qend sstart send evalue bitscore"
+```
+
+🔍 Explanation of output columns:
+
+Column	Meaning
+qseqid	Query name (marker gene ID)
+sseqid	Subject (genome) sequence ID
+pident	Percent identity
+length	Alignment length
+qlen / slen	Query and subject sequence lengths
+qstart/qend	Start and end of query alignment
+sstart/send	Start and end on subject
+evalue	BLAST significance score
+bitscore	Strength of alignment
+🧮 Step 3: Add filtering (optional)
+
+If you only want matches ≥80% identity and ≥80% coverage, you can filter like this:
+```
+blastn -query ehec_markers.fna \
+       -subject /home/jing/E.coli/EHEC/EHEC_O111_H8/EHEC_O111_H8_GCA_049489415.1_ASM4948941v1_genomic.fna \
+       -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send evalue bitscore" \
+       | awk '{cov=($4/$5)*100; if($3>=80 && cov>=80) print $0}' > EHEC_O111_H8_GCA_049489415.1_filtered_hits.tsv
+```
+🌀 Step 4: Run on all assemblies
+
+If you have many genome folders, you can loop through all .fna files automatically:
+```
+mkdir -p blast_out
+
+for f in $(find /home/jing/E.coli/ecoli_all -name "*.fna"); do
+  folder=$(basename "$(dirname "$f")")
+  base=$(basename "$f" .fna)
+  echo "Running BLAST on $folder ..."
+  
+  blastn -query ehec_markers.fna \
+         -subject "$f" \
+         -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send evalue bitscore" \
+         | awk '{cov=($4/$5)*100; if($3>=80 && cov>=80) print $0}' \
+         > blast_out/${folder}_${base}_hits.tsv
+done
+```
+
+🧾 Step 5: Summarize presence/absence (optional)
+
+Once all runs are done, you can combine results and make a presence/absence matrix:
+
+Each row = genome
+
+Each column = marker gene
+
+1 = gene detected (≥80% identity & coverage), 0 = absent
+
 ### Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)
 ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:
@@ -99,12 +174,17 @@ abricate --list   # should now show ehec_markers
 ```
 ## ABRicate with a custom DB:
 ```
+# Create output directory
 mkdir -p abricate_out
-find all_sample -type f -name "*.fna" -print0 \
-| while IFS= read -r -d '' f; do
-  base=$(basename "$f" .fna)
-  echo "[ABRicate] $base"
-  abricate --db ehec_markers --minid 80 --mincov 90 "$f" > "abricate_out/${base}.tsv"
+
+# Loop through all subfolders containing .fna files
+for f in $(find . -type f -name "*.fna"); do
+  folder=$(basename "$(dirname "$f")")   # get folder name (e.g., GCA_037094545.1)
+  base=$(basename "$f" .fna)             # get file name without extension
+  outname="${folder}_${base}.tsv"        # combine both for unique output name
+  echo "Processing: $folder / $base"
+  
+  abricate --db ehec_markers --minid 80 --mincov 80 "$f" > "abricate_out/$outname"
 done
 
 abricate --summary abricate_out/*.tsv > abricate_summary.tsv

@@ -314,6 +314,8 @@ if __name__ == "__main__":
 ```
 python make_presence_matrix.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
 ```
+<img width="819" height="352" alt="image" src="https://github.com/user-attachments/assets/5c40d019-5f9e-4321-a517-aee62f9cfe03" />
+
 ### Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)
 ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:

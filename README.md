@@ -106,29 +106,70 @@ blastn -query ehec_markers.fna \
 If you have many genome folders, you can loop through all .fna files automatically:
 ```
 mkdir -p blast_out
+mkdir -p blast_hits_only
 
 for f in $(find /home/jing/E.coli/ecoli_all -name "*.fna"); do
   folder=$(basename "$(dirname "$f")")
   base=$(basename "$f" .fna)
+  out_file="blast_out/${folder}_${base}_hits.tsv"
+
   echo "Running BLAST on $folder ..."
-  
+
   blastn -query ehec_markers.fna \
          -subject "$f" \
          -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send evalue bitscore" \
-         | awk '{cov=($4/$5)*100; if($3>=80 && cov>=80) print $0}' \
-         > blast_out/${folder}_${base}_hits.tsv
+         | awk '{cov=($4/$5)*100; if($3>=80 && cov>=80) print $0}' > "$out_file"
+
+  # If file is non-empty (has hits), copy to hits-only folder
+  if [ -s "$out_file" ]; then
+      cp "$out_file" blast_hits_only/
+      echo "✅ Hits found in $folder — copied to blast_hits_only/"
+  else
+      echo "❌ No hits for $folder"
+  fi
 done
+
 ```
 
-🧾 Step 5: Summarize presence/absence (optional)
+🧾 Step 5: Summarize presence/absence (Python)
 
-Once all runs are done, you can combine results and make a presence/absence matrix:
+- Reads all .tsv files in a folder
 
-Each row = genome
+- Filters for hits ≥80% identity and ≥80% coverage
 
-Each column = marker gene
+- Outputs a presence/absence matrix
 
-1 = gene detected (≥80% identity & coverage), 0 = absent
+nano summarize_blast_results.py
+```
+import pandas as pd
+import glob, os
+
+# Parameters
+identity_cutoff = 80
+coverage_cutoff = 0.8
+
+all_data = []
+for f in glob.glob("*.tsv"):
+    df = pd.read_csv(f, sep="\t", header=None, names=[
+        "qseqid","sseqid","pident","length","qlen","qstart","qend",
+        "sstart","send","evalue","bitscore"
+    ])
+    df["coverage"] = df["length"] / df["qlen"]
+    df = df[(df["pident"] >= identity_cutoff) & (df["coverage"] >= coverage_cutoff)]
+    genes = df["qseqid"].unique().tolist()
+    all_data.append({"Sample": os.path.splitext(os.path.basename(f))[0], **{g:1 for g in genes}})
+
+# Combine into a single DataFrame
+summary = pd.DataFrame(all_data).fillna(0).set_index("Sample")
+summary = summary.astype(int)
+
+# Save to file
+summary.to_csv("blast_presence_absence.tsv", sep="\t")
+print(summary)
+```
+# Run 
+```
+python summarize_blast_results.py --glob "/home/jing/E.coli/blast_out/*.tsv"
 
 ### Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)

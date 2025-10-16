@@ -377,6 +377,7 @@ done
 abricate --summary abricate_out/*.tsv > abricate_summary.tsv
 echo "Wrote abricate_summary.tsv"
 ```
+<img width="1070" height="242" alt="image" src="https://github.com/user-attachments/assets/e9992ef4-da90-4f1e-8faf-a9e52e31d78c" />
 
 ## Make presence/absence matrix + classification
 ```

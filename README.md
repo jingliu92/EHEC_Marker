@@ -185,33 +185,130 @@ done
 
 - Outputs a presence/absence matrix
 
-nano summarize_blast_results.py
+nano make_presence_matrix.py
 ```
-import pandas as pd
-import glob, os
+#!/usr/bin/env python3
+import argparse, glob, os, pandas as pd, re
 
-# Parameters
-identity_cutoff = 80
-coverage_cutoff = 0.8
+def canonical_gene(name: str) -> str:
+    n = str(name).strip().split()[0]
+    l = n.lower()
+    if l.startswith("stx1"): return "stx1"
+    if l.startswith("stx2"): return "stx2"
+    m = {"eae":"eae","espk":"espK","espv":"espV","z2098":"Z2098",
+         "ured":"ureD","espn":"espN","suba":"subA","aggr":"aggR"}
+    for k,v in m.items():
+        if l.startswith(k): return v
+    return n  # fallback
 
-all_data = []
-for f in glob.glob("*.tsv"):
-    df = pd.read_csv(f, sep="\t", header=None, names=[
-        "qseqid","sseqid","pident","length","qlen","qstart","qend",
-        "sstart","send","evalue","bitscore"
-    ])
-    df["coverage"] = df["length"] / df["qlen"]
-    df = df[(df["pident"] >= identity_cutoff) & (df["coverage"] >= coverage_cutoff)]
-    genes = df["qseqid"].unique().tolist()
-    all_data.append({"Sample": os.path.splitext(os.path.basename(f))[0], **{g:1 for g in genes}})
+def read_blast_tsv(path: str) -> pd.DataFrame:
+    # Try 11-column (with qlen)
+    cols11 = ["qseqid","sseqid","pident","length","qlen",
+              "qstart","qend","sstart","send","evalue","bitscore"]
+    cols10 = ["qseqid","sseqid","pident","length",
+              "qstart","qend","sstart","send","evalue","bitscore"]
+    try:
+        df = pd.read_csv(path, sep="\t")
+        # If no header was actually present, try to coerce
+        if "qseqid" not in df.columns:
+            raise ValueError("No header detected")
+    except Exception:
+        # Headerless or mismatched: sniff by field count
+        first = open(path).readline().rstrip("\n")
+        nf = len(first.split("\t"))
+        if nf == 11:
+            df = pd.read_csv(path, sep="\t", header=None, names=cols11)
+        elif nf == 10:
+            df = pd.read_csv(path, sep="\t", header=None, names=cols10)
+        else:
+            # empty file or weird shape
+            return pd.DataFrame(columns=cols11)
+    # Ensure columns exist
+    for c in cols11:
+        if c not in df.columns: df[c] = pd.NA
+    return df
 
-# Combine into a single DataFrame
-summary = pd.DataFrame(all_data).fillna(0).set_index("Sample")
-summary = summary.astype(int)
+def main():
+    ap = argparse.ArgumentParser(description="Build presence/absence matrix from BLAST outfmt 6 TSVs.")
+    ap.add_argument("--glob", default="blast_out/*_hits.tsv", help="Glob for BLAST TSVs (default: blast_out/*_hits.tsv)")
+    ap.add_argument("--id", type=float, default=80.0, help="Min % identity to keep (default 80)")
+    ap.add_argument("--cov", type=float, default=0.80, help="Min query coverage (length/qlen) to keep (default 0.80)")
+    ap.add_argument("--outprefix", default="blast", help="Output prefix (default blast)")
+    args = ap.parse_args()
 
-# Save to file
-summary.to_csv("blast_presence_absence.tsv", sep="\t")
-print(summary)
+    files = sorted(glob.glob(args.glob, recursive=True))
+    if not files:
+        print(f"No files matched {args.glob}")
+        return
+
+    presence_rows = []
+    best_rows = []
+
+    for f in files:
+        sample = os.path.splitext(os.path.basename(f))[0]
+        df = read_blast_tsv(f)
+
+        if df.empty:
+            presence_rows.append({"Sample": sample})
+            continue
+
+        # Compute coverage when qlen is available; if missing, assume already filtered upstream
+        if "qlen" in df.columns and df["qlen"].notna().any():
+            df["coverage"] = pd.to_numeric(df["length"], errors="coerce") / pd.to_numeric(df["qlen"], errors="coerce")
+            df = df[(pd.to_numeric(df["pident"], errors="coerce") >= args.id) &
+                    (pd.to_numeric(df["coverage"], errors="coerce") >= args.cov)]
+        else:
+            # no qlen -> keep as-is or filter by identity only
+            df["coverage"] = 1.0
+            df = df[pd.to_numeric(df["pident"], errors="coerce") >= args.id]
+
+        if df.empty:
+            presence_rows.append({"Sample": sample})
+            continue
+
+        df["Gene"] = df["qseqid"].apply(canonical_gene)
+
+        # Best hit per gene: max identity, then coverage, then length
+        best = (df.sort_values(["Gene","pident","coverage","length"], ascending=[True, False, False, False])
+                  .groupby("Gene", as_index=False).first())
+
+        # presence row for this sample
+        row = {"Sample": sample}
+        for g in best["Gene"].unique(): row[g] = 1
+        presence_rows.append(row)
+
+        # collect best hits rows
+        for _, r in best.iterrows():
+            best_rows.append({
+                "Sample": sample,
+                "Gene": r["Gene"],
+                "Identity(%)": round(float(r["pident"]),2) if pd.notna(r["pident"]) else None,
+                "Coverage": round(float(r["coverage"]),3) if pd.notna(r["coverage"]) else None,
+                "Subject": r.get("sseqid",""),
+                "AlignLen": int(r.get("length",0)) if pd.notna(r.get("length",0)) else None
+            })
+
+    mat = pd.DataFrame(presence_rows).fillna(0)
+    # Order columns if present
+    order = ["Sample","stx1","stx2","eae","espK","espV","Z2098","ureD","espN","subA","aggR"]
+    cols = [c for c in order if c in mat.columns] + [c for c in mat.columns if c not in order]
+    mat = mat[cols]
+    for c in mat.columns:
+        if c != "Sample": mat[c] = mat[c].astype(int)
+
+    # Save outputs
+    pa_path = f"{args.outprefix}_presence_absence.tsv"
+    bh_path = f"{args.outprefix}_best_hits.tsv"
+    mat.to_csv(pa_path, sep="\t", index=False)
+    pd.DataFrame(best_rows).to_csv(bh_path, sep="\t", index=False)
+
+    print(f"Wrote: {pa_path}")
+    print(f"Wrote: {bh_path}")
+    print("Tip: open the matrix with `column -t blast_presence_absence.tsv | less -S`")
+
+if __name__ == "__main__":
+    main()
+
 ```
 # Run 
 ```

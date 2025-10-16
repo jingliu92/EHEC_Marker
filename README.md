@@ -312,7 +312,7 @@ if __name__ == "__main__":
 ```
 # Run 
 ```
-python summarize_blast_results.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
+python make_presence_matrix.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
 ```
 ### Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)

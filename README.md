@@ -137,6 +137,7 @@ cd blast_hits_only
 ls -l . | wc -l
 # 1984
 ```
+<img width="790" height="39" alt="image" src="https://github.com/user-attachments/assets/06e9cc18-f8f8-452d-a10b-3b00c94b7070" />
 
 ### Add headers to each tsv file
 ```

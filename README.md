@@ -129,7 +129,7 @@ for f in $(find /home/jing/E.coli/ecoli_all -name "*.fna"); do
   fi
 done
 ```
-### Check how many assemblies have hits?
+### Check how many assemblies have hits? (1984)
 ```
 cd blast_hits_only
 ls -l . | wc -l
@@ -174,7 +174,7 @@ print(summary)
 ```
 # Run 
 ```
-python summarize_blast_results.py --glob "/home/jing/E.coli/blast_out/*.tsv"
+python summarize_blast_results.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
 
 ### Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)

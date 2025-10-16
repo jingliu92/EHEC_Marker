@@ -92,8 +92,8 @@ qstart/qend	Start and end of query alignment
 sstart/send	Start and end on subject
 evalue	BLAST significance score
 bitscore	Strength of alignment
-🧮 Step 3: Add filtering (optional)
 
+🧮 Step 3: Add filtering (optional)
 If you only want matches ≥80% identity and ≥80% coverage, you can filter like this:
 ```
 blastn -query ehec_markers.fna \
@@ -128,7 +128,12 @@ for f in $(find /home/jing/E.coli/ecoli_all -name "*.fna"); do
       echo "❌ No hits for $folder"
   fi
 done
-
+```
+### Check how many assemblies have hits?
+```
+cd blast_hits_only
+ls -l . | wc -l
+# 1984
 ```
 
 🧾 Step 5: Summarize presence/absence (Python)

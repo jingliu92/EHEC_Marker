@@ -53,39 +53,6 @@ AGAAACCTTCAGCCACGGAACACTCGCTAACCGTCTGGAGATATGGGTCGACGGTTCTCCGCTGTTGATTGAGCGTCTGC
 In total, 11,321 genome assemblies were retrieved and downloaded. The assemblies are organized into folders, each named according to the respective NCBI accession number: 
 <img width="839" height="108" alt="image" src="https://github.com/user-attachments/assets/57a48e37-c570-4dd6-a83d-6e3bbc03f457" />
 
-## Change file name
-```
-for d in EHEC_*; do
-  [ -d "$d" ] || continue
-  folder=$(basename "$d")
-  cd "$d"
-  for f in *.fna; do
-    mv "$f" "${folder}_${f}"
-  done
-  cd ..
-done
-
-for d in EPEC_*; do
-  [ -d "$d" ] || continue
-  folder=$(basename "$d")
-  cd "$d"
-  for f in *.fna; do
-    mv "$f" "${folder}_${f}"
-  done
-  cd ..
-done
-
-```
-```
-DEST_DIR="assembly"
-# Loop through each folder and copy its contents
-
-for folder in EHEC_*; do
-    if [ -d "$folder" ]; then
-        cp "$folder"/* "$DEST_DIR"/
-    fi
-done
-```
 ## Search target genes in the downloaded assemblies
 ### Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
 ### Option 2: Use package ABRicate.

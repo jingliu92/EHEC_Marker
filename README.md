@@ -359,7 +359,7 @@ cp ehec_markers.fna /home/jing/miniconda3/envs/abricate/db/ehec_markers/sequence
 abricate --setupdb
 abricate --list   # should now show ehec_markers
 ```
-## ABRicate with a custom DB:
+## ABRicate with a custom DB (threshold: --minid 80 --mincov 80)
 ```
 # Create output directory
 mkdir -p abricate_out

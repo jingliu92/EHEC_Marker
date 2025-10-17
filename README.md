@@ -360,7 +360,7 @@ cp ehec_markers.fna /home/jing/miniconda3/envs/abricate/db/ehec_markers/sequence
 abricate --setupdb
 abricate --list   # should now show ehec_markers
 ```
-🌀 Step 3: ABRicate with a custom DB (threshold: --minid 80 --mincov 80)
+🌀 Step 3: ABRicate with a custom DB (threshold: --minid 90 --mincov 90)
 ```
 # Create output directory
 mkdir -p abricate_out
@@ -372,7 +372,7 @@ for f in $(find . -type f -name "*.fna"); do
   outname="${folder}_${base}.tsv"        # combine both for unique output name
   echo "Processing: $folder / $base"
   
-  abricate --db ehec_markers --minid 80 --mincov 80 "$f" > "abricate_out/$outname"
+  abricate --db ehec_markers --minid 90 --mincov 90 "$f" > "abricate_out/$outname"
 done
 
 abricate --summary abricate_out/*.tsv > abricate_summary.tsv

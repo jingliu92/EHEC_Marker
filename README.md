@@ -716,4 +716,31 @@ NR==1{
 }' abricate_vs_blast_wide.tsv | sort -u > both_methods_ANY.txt
 
 ```
+#### Specific gene confirmed by both (example: espK)
+```
+awk -F'\t' '
+NR==1{for(i=1;i<=NF;i++){if($i=="ABRicate_espK") a=i; if($i=="BLAST_espK") b=i} next}
+($a==1 && $b==1){print $1}
+' abricate_vs_blast_wide.tsv | sort -u > both_methods_espK.txt
+```
+#### All target genes confirmed by both
+```
+genes="eae stx1 stx2 espK espV Z2098 ureD"
+awk -F'\t' -v genes="$genes" '
+NR==1{
+  n=split(genes,G," ");
+  for(i=1;i<=n;i++){
+    for(j=1;j<=NF;j++){ if($j=="ABRicate_" G[i]) A[i]=j }
+    for(j=1;j<=NF;j++){ if($j=="BLAST_"    G[i]) B[i]=j }
+  }
+  next
+}
+{
+  ok=1
+  for(i=1;i<=n;i++){
+    if($(A[i])!=1 || $(B[i])!=1){ ok=0; break }
+  }
+  if(ok) print $1
+}' abricate_vs_blast_wide.tsv | sort -u > both_methods_ALL_TARGETS.txt
 
+```

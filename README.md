@@ -749,4 +749,54 @@ NR==1{
 { head -n1 abricate_vs_blast_wide.tsv; awk 'NR==FNR{a[$1]=1; next} ($1 in a)' both_methods_ALL_TARGETS.txt abricate_vs_blast_wide.tsv | tail -n +2; } > both_methods_ALL_TARGETS_table.tsv
 
 ```
+#### Make a co-occurrence table for every possible combination of markers found in your both_methods_ALL_TARGETS_table.tsv.
+nano make_all_marker_combinations.py
+```
+#!/usr/bin/env python3
+import pandas as pd
+import itertools
+
+INPUT = "both_methods_ALL_TARGETS_table.tsv"
+OUTPUT = "all_marker_combinations.tsv"
+
+# --- Load data ---
+df = pd.read_csv(INPUT, sep="\t")
+
+# Identify all genes (based on ABRicate_ and BLAST_ columns)
+genes = sorted(set(c.split("_")[1] for c in df.columns if c.startswith("ABRicate_")))
+
+# Merge ABRicate and BLAST results (1 only if both are 1)
+for g in genes:
+    a, b = f"ABRicate_{g}", f"BLAST_{g}"
+    df[g] = ((df.get(a, 0) == 1) & (df.get(b, 0) == 1)).astype(int)
+
+# --- Compute combination frequencies ---
+n = len(df)
+out = []
+
+# Iterate through all possible combination sizes (1..N)
+for r in range(1, len(genes) + 1):
+    for combo in itertools.combinations(genes, r):
+        # Check rows where all genes in combo = 1
+        mask = df[list(combo)].all(axis=1)
+        pct = 100 * mask.sum() / n
+        out.append({
+            "Combination": "/".join(combo),
+            "Num_Genes": r,
+            "Count": int(mask.sum()),
+            "Frequency(%)": round(pct, 2)
+        })
+
+# --- Sort for readability ---
+tbl = pd.DataFrame(out).sort_values(["Num_Genes", "Frequency(%)"], ascending=[True, False])
+
+# Save output
+tbl.to_csv(OUTPUT, sep="\t", index=False)
+print(f"✅ Wrote {OUTPUT} with {len(tbl)} combinations across {len(genes)} genes.")
+print(tbl.head(15).to_string(index=False))
+```
+```
+python make_all_marker_combinations.py
+```
+From this step we will get the co-occurrence table for every possible combination of markers: all_marker_combinations.tsv
 

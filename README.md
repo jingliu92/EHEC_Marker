@@ -381,6 +381,7 @@ echo "Wrote abricate_summary.tsv"
 <img width="1070" height="242" alt="image" src="https://github.com/user-attachments/assets/e9992ef4-da90-4f1e-8faf-a9e52e31d78c" />
 
 🌀 Step 4:  Make presence/absence matrix + classification
+
 Save as summarize_from_abricate.py in the same folder as abricate_summary.tsv, then run: summarize_from_abricate.py
 ```
 #!/usr/bin/env python3
@@ -446,3 +447,14 @@ mat.to_csv("abricate_presence_absence.tsv", sep="\t", index=False)
 cls.to_csv("abricate_classification.tsv", sep="\t", index=False)
 print("✅ Wrote: abricate_presence_absence.tsv and abricate_classification.tsv")
 ```
+🌀 Step 5:  Remove assemblies that has no genes interested
+```
+awk 'NR==1{print; next} {sum=0; for(i=2;i<=NF;i++) sum+=$i; if(sum>0) print}' abricate_presence_absence.tsv > abricate_presence_absence_filtered.tsv
+```
+🌀 Step 6 Check how many assemblies have hits? (2390)
+```
+wc -l abricate_presence_absence_filtered.tsv
+
+# 2390
+```
+<img width="837" height="41" alt="image" src="https://github.com/user-attachments/assets/3b084a46-cd6c-44ad-972a-039052be807c" />

@@ -12,7 +12,7 @@
 <img width="585" height="361" alt="image" src="https://github.com/user-attachments/assets/6ebcdb81-8a39-4c00-b477-650429ab189d" />
 
 
-## 2. Tasks:
+## 2. Tasks
 1. Identify all eae+ isolates
 2. Find their linkage to stx, esp, ureD and z2098. Then create the linkage table.
 3. Find aggR that are positive for stx or stx/subA
@@ -55,7 +55,7 @@ In total, 11,321 genome assemblies were retrieved and downloaded. The assemblies
 
 ### 3.2 Search target genes in the downloaded assemblies
 ### 3.2.1 Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
-🧬 Step 1: Prepare your custom marker database
+🌀 Step 1: Prepare your custom marker database
 We already have all your marker gene FASTA sequences (e.g., eae, espK, espV, Z2098, stx1, stx2, ureD, etc.), put them together into one FASTA file:
 ```
 cat eae.fasta espK.fasta espV.fasta Z2098.fasta stx1.fasta stx2.fasta ureD.fasta > ehec_markers.fna
@@ -72,7 +72,7 @@ ehec_markers.nsq
 ehec_markers.nin
 ehec_markers.nhr
 ```
-🧫 Step 2: Run BLAST for one genome assembly for testing purpose:
+🌀 Step 2: Run BLAST for one genome assembly for testing purpose:
 ```
 blastn -query ehec_markers.fna \
        -subject /home/jing/E.coli/EHEC/EHEC_O111_H8/EHEC_O111_H8_GCA_049489415.1_ASM4948941v1_genomic.fna \
@@ -93,7 +93,7 @@ sstart/send	Start and end on subject
 evalue	BLAST significance score
 bitscore	Strength of alignment
 
-🧮 Step 3: Add filtering (optional)
+🌀 Step 3: Add filtering (optional)
 If you only want matches ≥80% identity and ≥80% coverage, you can filter like this:
 ```
 blastn -query ehec_markers.fna \
@@ -177,7 +177,7 @@ find ./blast_hits_only -type f -name "*_hits.tsv" -print0 | while IFS= read -r -
 done
 ```
 
-🧾 Step 7: Summarize presence/absence (Python)
+🌀 Step 7: Summarize presence/absence (Python)
 
 - Reads all .tsv files in a folder
 
@@ -310,14 +310,14 @@ if __name__ == "__main__":
     main()
 
 ```
-#### Run the script
+🌀 Step 8: Run the script
 ```
 python make_presence_matrix.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
 ```
 #### Presence and absence matrix
 <img width="819" height="352" alt="image" src="https://github.com/user-attachments/assets/5c40d019-5f9e-4321-a517-aee62f9cfe03" />
 
-### Option 2: Use package ABRicate.
+### 3.2 Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)
 ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:
 - Antibiotic resistance genes (ARGs)
@@ -340,7 +340,7 @@ Key features of ABRicate:
 - Reports hits with identity and coverage thresholds, so you know how well a gene matches.
 - Can scan multiple genomes in batch mode.
 - Focused on functional interpretation—e.g., it tells you which resistance genes are present, rather than showing raw sequence similarity.
-## Install `ABRicate` in Our Server
+🌀 Step 1:  Install `ABRicate` in Our Server
 ```
 # Create a clean environment for abricate
 conda create -n abricate -c bioconda -c conda-forge abricate
@@ -351,7 +351,7 @@ conda activate abricate
 # Check that it works
 abricate --version
 ```
-## Make Our Custom Marker DB
+🌀 Step 2: Make Our Custom Marker DB
 Once ABRicate is installed, make a custom database for our interested markers:
 ```
 mkdir -p /home/jing/miniconda3/envs/abricate/db/ehec_markers
@@ -359,7 +359,7 @@ cp ehec_markers.fna /home/jing/miniconda3/envs/abricate/db/ehec_markers/sequence
 abricate --setupdb
 abricate --list   # should now show ehec_markers
 ```
-## ABRicate with a custom DB (threshold: --minid 80 --mincov 80)
+🌀 Step 3: ABRicate with a custom DB (threshold: --minid 80 --mincov 80)
 ```
 # Create output directory
 mkdir -p abricate_out
@@ -379,7 +379,7 @@ echo "Wrote abricate_summary.tsv"
 ```
 <img width="1070" height="242" alt="image" src="https://github.com/user-attachments/assets/e9992ef4-da90-4f1e-8faf-a9e52e31d78c" />
 
-## Make presence/absence matrix + classification
+🌀 Step 4:  Make presence/absence matrix + classification
 Save as make_matrix_and_classify.py; run: python make_matrix_and_classify.py
 ```
 import csv, pandas as pd

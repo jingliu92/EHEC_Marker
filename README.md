@@ -691,3 +691,29 @@ _agreement_summary.tsv → if you see many ABRicate_only for a gene, those are u
 _discrepancies.tsv → check BLAST %identity and coverage columns to see if BLAST is just under cutoff; try rerunning comparison with --id 75 --cov 0.6 to see sensitivity.
 
 _wide.tsv → handy for quick greps: grep -E "GCA_.*\t.*_espK"
+
+#### Any gene confirmed by both
+```
+awk -F'\t' '
+NR==1{
+  for(i=1;i<=NF;i++){
+    if($i ~ /^ABRicate_/) { abr[i]=$i }
+  }
+  # map matching BLAST columns
+  for(i in abr){
+    gene = substr(abr[i], 10)      # strip "ABRicate_"
+    for(j=1;j<=NF;j++) if($j=="BLAST_" gene) bl[j]=i
+  }
+  next
+}
+{
+  ok=0
+  for(b in bl){
+    a = bl[b]              # ABRicate col index
+    if($(a)==1 && $(b)==1){ ok=1; break }
+  }
+  if(ok) print $1
+}' abricate_vs_blast_agreement_summary.tsv | sort -u > both_methods_ANY.txt
+
+```
+

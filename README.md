@@ -381,30 +381,68 @@ echo "Wrote abricate_summary.tsv"
 <img width="1070" height="242" alt="image" src="https://github.com/user-attachments/assets/e9992ef4-da90-4f1e-8faf-a9e52e31d78c" />
 
 🌀 Step 4:  Make presence/absence matrix + classification
-Save as make_matrix_and_classify.py; run: python make_matrix_and_classify.py
+Save as summarize_from_abricate.py in the same folder as abricate_summary.tsv, then run: summarize_from_abricate.py
 ```
-import csv, pandas as pd
-genes = ['stx1','stx2','eae','espK','espV','Z2098','ureD']
-rows=[]
-with open("abricate_summary.tsv") as fh:
-    r=csv.DictReader(fh, delimiter="\t")
-    for row in r:
-        rec={'sample':row['FILE']}
-        for g in genes:
-            rec[g]=int(row.get(g,'0') not in ('','0','0.00','NA'))
-        rows.append(rec)
+#!/usr/bin/env python3
+import re
+import pandas as pd
 
-df=pd.DataFrame(rows).sort_values('sample')
+INPUT = "abricate_summary.tsv"
+GENES = ["stx1","stx2","eae","espK","espV","Z2098","ureD","espN","subA","aggR"]
 
-def classify(r):
-    stx = r['stx1'] or r['stx2']
-    support = r['espK']+r['espV']+r['Z2098']+r['ureD']
-    if not stx: return "Non-EHEC"
-    if r['eae'] or support>=2: return "EHEC"
-    if support==1: return "Possible EHEC"
-    return "Non-EHEC"
+# Read the summary
+df = pd.read_csv(INPUT, sep="\t", dtype=str)
 
-df['CLASS']=df.apply(classify,axis=1)
-df.to_csv("marker_matrix.tsv", sep="\t", index=False)
-print("Wrote marker_matrix.tsv")
+# Normalize column names (strip spaces)
+df.columns = [c.strip() for c in df.columns]
+
+# Accept either '#FILE' or 'FILE'
+file_col = None
+for cand in ("#FILE", "FILE"):
+    if cand in df.columns:
+        file_col = cand
+        break
+if file_col is None:
+    raise SystemExit("Error: neither '#FILE' nor 'FILE' column found. Check abricate_summary.tsv header.")
+
+df.rename(columns={file_col: "Sample"}, inplace=True)
+
+# Keep only columns we care about and that actually exist
+present_cols = [g for g in GENES if g in df.columns]
+if not present_cols:
+    raise SystemExit(f"No expected gene columns found. Got columns: {list(df.columns)}")
+
+mat = df[["Sample"] + present_cols].copy()
+
+# Convert ABRicate summary entries to presence/absence:
+# - ABRicate puts '.' for none
+# - If present, it may list one or more values like '96.00;100.00'
+# We'll call presence=1 if any digit appears in the cell.
+def to_presence(cell: str) -> int:
+    if cell is None:
+        return 0
+    cell = str(cell).strip()
+    return 1 if re.search(r"\d", cell) else 0
+
+for g in present_cols:
+    mat[g] = mat[g].apply(to_presence).astype(int)
+
+# Classification
+def classify(row) -> str:
+    stx = int(row.get("stx1", 0)) or int(row.get("stx2", 0))
+    eae = int(row.get("eae", 0))
+    support = sum(int(row.get(k, 0)) for k in ("espK","espV","Z2098","ureD") if k in row.index)
+    if stx and (eae or support >= 2): return "EHEC"
+    if (not stx) and eae and support >= 1: return "Typical EPEC"
+    if (not stx) and eae and support == 0: return "Atypical EPEC"
+    if stx and not eae: return "STEC (LEE−)"
+    return "Commensal/Other"
+
+cls = mat.copy()
+cls["CLASS"] = cls.apply(classify, axis=1)
+
+# Write outputs
+mat.to_csv("abricate_presence_absence.tsv", sep="\t", index=False)
+cls.to_csv("abricate_classification.tsv", sep="\t", index=False)
+print("✅ Wrote: abricate_presence_absence.tsv and abricate_classification.tsv")
 ```

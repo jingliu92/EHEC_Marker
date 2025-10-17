@@ -458,3 +458,21 @@ wc -l abricate_presence_absence_filtered.tsv
 # 2390
 ```
 <img width="837" height="41" alt="image" src="https://github.com/user-attachments/assets/3b084a46-cd6c-44ad-972a-039052be807c" />
+
+## 4. Comparison of two methods
+🧬 1️⃣ Methodological difference
+| Tool                          | How it works                                                                                                                                                                                                                                   | Typical behavior                                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ABRicate**                  | Uses **BLASTn under the hood**, but applies its own filters (`--minid`, `--mincov`), and **scans all contigs** for any partial or full matches. It records every region that passes the threshold.                                             | Multiple hits per genome if a gene occurs in several loci, plasmids, or duplicated regions.                                                      |
+| **Your manual BLAST command** | You used `blastn -task blastn-short -query markers -subject assembly` with an **`awk` filter** `(pident >= 80 && cov >= 80)` that outputs only alignments satisfying both conditions — **but it stops at the sequence level, not gene level.** | Misses hits if the query covers multiple disjoint regions (e.g., gene split across contigs), or if coverage falls slightly below your threshold. |
+
+🧩 2️⃣ Typical reasons ABRicate reports more hits than raw BLAST
+| Cause                                 | Explanation                                                                                                                                                                                           |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gene fragmentation**                | ABRicate merges multiple high-identity fragments to call a gene “present” if total coverage meets threshold; plain BLAST outputs individual fragments separately (and your awk filter may drop them). |
+| **Multiple query matches per genome** | If a marker gene occurs on plasmids or in duplicated loci, ABRicate counts all; you may have been filtering only the best local alignment per query.                                                  |
+| **Different BLAST task**              | ABRicate uses **`blastn`**, while you used **`blastn-short`** — that’s optimized for <50 bp sequences. For full-length genes, it can miss long hits.                                                  |
+| **Coverage calculation**              | ABRicate calculates coverage relative to *gene length*, not *query alignment length* (and it merges hits before calculating coverage). Your awk filter calculated coverage per fragment.              |
+| **Database indexing differences**     | ABRicate indexes marker databases with makeblastdb, sometimes allowing slightly looser word sizes; your raw `blastn` call may be stricter by default.                                                 |
+| **Parsing thresholds**                | ABRicate’s internal `--mincov` and `--minid` compare float values differently (≥ vs >); minor, but can change borderline hits.                                                                        |
+

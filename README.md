@@ -1,6 +1,6 @@
 # EHEC_Marker
 
-## Genes interested
+## 1. Genes interested
 `eae` (intimin; include a few alleles if you care about subtyping, e.g., β, γ, ε). \
 `stx1` and `stx2` (include major subtypes: stx1a/1c/1d; stx2a–2g to avoid false negatives). \
 `espK, espV and espN` (T3SS effectors; often on OI-122 / related islands). \
@@ -12,13 +12,13 @@
 <img width="585" height="361" alt="image" src="https://github.com/user-attachments/assets/6ebcdb81-8a39-4c00-b477-650429ab189d" />
 
 
-## Tasks:
+## 2. Tasks:
 1. Identify all eae+ isolates
 2. Find their linkage to stx, esp, ureD and z2098. Then create the linkage table.
 3. Find aggR that are positive for stx or stx/subA
 4. Find eae negative but stx+ isolates (STEC). STEC is not important for food safety. 
 
-## Bioinformatics Analysis
+## 3. Bioinformatics Analysis
 
 `ehec_markers.fna`
 ```
@@ -43,7 +43,7 @@ CTGAGCGAATGCCTGAAAAGAGCCAGAACGTGCTTATTTCGATGAATATCGATAGCGAGGCTGGGCCATTAATATATTCC
 >ureD
 AGAAACCTTCAGCCACGGAACACTCGCTAACCGTCTGGAGATATGGGTCGACGGTTCTCCGCTGTTGATTGAGCGTCTGCACGTGGCCAATGGAGAACTTACCTGCGTTGCCCGGAAACCATGGGTGGGAACGATGCTGTTCTACCTGGGGAATGAAACGCAACTGGAAGACATACGCGAAAAACTCA
 ```
-## Download assemblies from NCBI
+### 3.1 Download assemblies from NCBI
 ```
 # Get ALL complete genomes for Escherichia coli 
 ./datasets download genome taxon "Escherichia coli" \
@@ -53,8 +53,8 @@ AGAAACCTTCAGCCACGGAACACTCGCTAACCGTCTGGAGATATGGGTCGACGGTTCTCCGCTGTTGATTGAGCGTCTGC
 In total, 11,321 genome assemblies were retrieved and downloaded. The assemblies are organized into folders, each named according to the respective NCBI accession number: 
 <img width="839" height="108" alt="image" src="https://github.com/user-attachments/assets/57a48e37-c570-4dd6-a83d-6e3bbc03f457" />
 
-## Search target genes in the downloaded assemblies
-### Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
+### 3.2 Search target genes in the downloaded assemblies
+### 3.2.1 Option 1: Use Blast-----large dataset takes forever, very slow, requires high computing compacity
 🧬 Step 1: Prepare your custom marker database
 We already have all your marker gene FASTA sequences (e.g., eae, espK, espV, Z2098, stx1, stx2, ureD, etc.), put them together into one FASTA file:
 ```
@@ -131,7 +131,7 @@ done
 ```
 <img width="1047" height="103" alt="image" src="https://github.com/user-attachments/assets/54048c16-85f2-4a3a-b6e2-f865b4e398f3" />
 
-### Check how many assemblies have hits? (1984)
+🌀 Step 5 Check how many assemblies have hits? (1984)
 ```
 cd blast_hits_only
 ls -l . | wc -l
@@ -139,7 +139,7 @@ ls -l . | wc -l
 ```
 <img width="879" height="49" alt="image" src="https://github.com/user-attachments/assets/d7c68fe3-3219-4edc-a5f5-ac21c1ddc0b7" />
 
-### Add headers to each tsv file
+🌀 Step 6 Add headers to each tsv file
 ```
 # Define both possible headers
 hdr11=$'qseqid\tsseqid\tpident\tlength\tqlen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore'
@@ -177,7 +177,7 @@ find ./blast_hits_only -type f -name "*_hits.tsv" -print0 | while IFS= read -r -
 done
 ```
 
-🧾 Step 5: Summarize presence/absence (Python)
+🧾 Step 7: Summarize presence/absence (Python)
 
 - Reads all .tsv files in a folder
 
@@ -310,11 +310,11 @@ if __name__ == "__main__":
     main()
 
 ```
-# Run 
+#### Run the script
 ```
 python make_presence_matrix.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
 ```
-## Presence and absence matrix
+#### Presence and absence matrix
 <img width="819" height="352" alt="image" src="https://github.com/user-attachments/assets/5c40d019-5f9e-4321-a517-aee62f9cfe03" />
 
 ### Option 2: Use package ABRicate.

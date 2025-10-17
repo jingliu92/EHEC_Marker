@@ -713,7 +713,7 @@ NR==1{
     if($(a)==1 && $(b)==1){ ok=1; break }
   }
   if(ok) print $1
-}' abricate_vs_blast_agreement_summary.tsv | sort -u > both_methods_ANY.txt
+}' abricate_vs_blast_wide.tsv | sort -u > both_methods_ANY.txt
 
 ```
 

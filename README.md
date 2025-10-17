@@ -677,3 +677,10 @@ python compare_abricate_blast.py \
   --id 80 --cov 0.80 \
   --outprefix abricate_vs_blast
 ```
+#### Outputs
+- abricate_vs_blast_discrepancies.tsv → long table of per-sample per-gene comparisons + BLAST best %ID/coverage (only rows where methods differ unless you add --all).
+
+- abricate_vs_blast_agreement_summary.tsv → counts of Agree+/Agree−/ABRicate_only/BLAST_only per gene.
+
+- abricate_vs_blast_wide.tsv → wide matrix: for each sample/gene, ABR (0/1) and BLAST (0/1) side-by-side.
+

@@ -744,3 +744,9 @@ NR==1{
 }' abricate_vs_blast_wide.tsv | sort -u > both_methods_ALL_TARGETS.txt
 
 ```
+#### Get the presence and absence table that confirmed by both methods
+```
+{ head -n1 abricate_vs_blast_wide.tsv; awk 'NR==FNR{a[$1]=1; next} ($1 in a)' both_methods_ALL_TARGETS.txt abricate_vs_blast_wide.tsv | tail -n +2; } > both_methods_ALL_TARGETS_table.tsv
+
+```
+

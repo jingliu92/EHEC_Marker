@@ -476,3 +476,204 @@ wc -l abricate_presence_absence_filtered.tsv
 | **Database indexing differences**     | ABRicate indexes marker databases with makeblastdb, sometimes allowing slightly looser word sizes; your raw `blastn` call may be stricter by default.                                                 |
 | **Parsing thresholds**                | ABRicate’s internal `--mincov` and `--minid` compare float values differently (≥ vs >); minor, but can change borderline hits.                                                                        |
 
+### Compare ABRicate vs BLAST per genome & gene (show agreements/disagreements, and capture BLAST best-hit details)
+1️⃣ Save as compare_abricate_blast.py in the folder with your results.
+```
+#!/usr/bin/env python3
+import argparse, glob, os, re
+import pandas as pd
+
+GENES_DEFAULT = ["stx1","stx2","eae","espK","espV","Z2098","ureD","espN","subA","aggR"]
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Compare ABRicate vs BLAST gene calls.")
+    ap.add_argument("--abricate", required=True, help="Path to abricate_summary.tsv")
+    ap.add_argument("--blast_glob", required=True, help="Glob for BLAST TSVs (e.g., blast_out/*_genomic_hits.tsv)")
+    ap.add_argument("--id", type=float, default=80.0, help="Min % identity to count BLAST presence (default 80)")
+    ap.add_argument("--cov", type=float, default=0.80, help="Min query coverage (length/qlen) for BLAST presence (default 0.80)")
+    ap.add_argument("--genes", nargs="*", default=GENES_DEFAULT, help="Genes to compare (default common EHEC/EPEC markers)")
+    ap.add_argument("--outprefix", default="abricate_vs_blast", help="Output prefix (default abricate_vs_blast)")
+    ap.add_argument("--all", action="store_true", help="Output all rows (not only discrepancies) in the long table")
+    return ap.parse_args()
+
+def extract_accession(s: str) -> str:
+    """Extract first GCA_/GCF_ accession from a path/filename."""
+    if not isinstance(s, str):
+        return str(s)
+    m = re.search(r'(G[CF]A_\d+\.\d+)', s)
+    return m.group(1) if m else os.path.splitext(os.path.basename(s))[0]
+
+def canonical_gene(name: str) -> str:
+    n = str(name).strip().split()[0]
+    l = n.lower()
+    if l.startswith("stx1"): return "stx1"
+    if l.startswith("stx2"): return "stx2"
+    m = {"eae":"eae","espk":"espK","espv":"espV","z2098":"Z2098",
+         "ured":"ureD","espn":"espN","suba":"subA","aggr":"aggR"}
+    for k,v in m.items():
+        if l.startswith(k): return v
+    return n
+
+def read_abricate_presence(path: str, genes):
+    df = pd.read_csv(path, sep="\t", dtype=str)
+    df.columns = [c.strip() for c in df.columns]
+    file_col = "#FILE" if "#FILE" in df.columns else ("FILE" if "FILE" in df.columns else None)
+    if file_col is None:
+        raise SystemExit("Could not find '#FILE' or 'FILE' column in abricate summary.")
+    df["SampleID"] = df[file_col].apply(extract_accession)
+
+    present_cols = [g for g in genes if g in df.columns]
+    if not present_cols:
+        raise SystemExit(f"No expected gene columns found in abricate summary. Got: {list(df.columns)}")
+
+    # Presence = any digit in the cell (ABRicate uses '.' for none; numbers/semicolon lists for hits)
+    def any_digit(x): 
+        return 1 if isinstance(x, str) and re.search(r"\d", x) else 0
+    pres = df[["SampleID"] + present_cols].copy()
+    for g in present_cols:
+        pres[g] = pres[g].apply(any_digit).astype(int)
+
+    # If some genes are missing from the summary, add 0 columns
+    for g in genes:
+        if g not in pres.columns:
+            pres[g] = 0
+    return pres[["SampleID"] + genes].drop_duplicates()
+
+def read_blast_presence(globpat: str, genes, id_cut: float, cov_cut: float):
+    files = sorted(glob.glob(globpat))
+    if not files:
+        raise SystemExit(f"No files matched {globpat}")
+    rows = []
+    details = []
+    for f in files:
+        sid = extract_accession(os.path.basename(f))
+        # Try to read with header
+        try:
+            df = pd.read_csv(f, sep="\t")
+            if "qseqid" not in df.columns:
+                raise Exception()
+        except Exception:
+            # Fallback to 11/10 col formats
+            cols11 = ["qseqid","sseqid","pident","length","qlen","qstart","qend","sstart","send","evalue","bitscore"]
+            cols10 = ["qseqid","sseqid","pident","length","qstart","qend","sstart","send","evalue","bitscore"]
+            first = open(f).readline().rstrip("\n")
+            nf = len(first.split("\t")) if first else 0
+            if nf == 11:
+                df = pd.read_csv(f, sep="\t", header=None, names=cols11)
+            elif nf == 10:
+                df = pd.read_csv(f, sep="\t", header=None, names=cols10)
+            else:
+                df = pd.DataFrame(columns=cols11)
+
+        if df.empty:
+            rows.append({"SampleID": sid})
+            continue
+
+        # compute coverage if qlen exists
+        if "qlen" in df.columns:
+            df["coverage"] = pd.to_numeric(df["length"], errors="coerce") / pd.to_numeric(df["qlen"], errors="coerce")
+        else:
+            df["coverage"] = 1.0
+
+        df["pident"] = pd.to_numeric(df["pident"], errors="coerce")
+        df = df[df["pident"].notna()]
+        keep = (df["pident"] >= id_cut) & (df["coverage"] >= cov_cut)
+        df = df[keep]
+        if df.empty:
+            rows.append({"SampleID": sid})
+            continue
+
+        df["Gene"] = df["qseqid"].apply(canonical_gene)
+        # best per gene
+        best = (df.sort_values(["Gene","pident","coverage","length"], ascending=[True,False,False,False])
+                  .groupby("Gene", as_index=False).first())
+        row = {"SampleID": sid}
+        for g in best["Gene"].unique():
+            row[g] = 1
+        rows.append(row)
+
+        for _, r in best.iterrows():
+            details.append({
+                "SampleID": sid, "Gene": r["Gene"],
+                "BLAST_best_identity(%)": round(float(r["pident"]),2),
+                "BLAST_best_coverage": round(float(r["coverage"]),3),
+                "Subject": r.get("sseqid",""),
+                "AlignLen": int(r.get("length",0)) if pd.notna(r.get("length",0)) else None
+            })
+
+    pres = pd.DataFrame(rows).fillna(0)
+    for g in genes:
+        if g not in pres.columns:
+            pres[g] = 0
+    # Ensure ints
+    for c in pres.columns:
+        if c != "SampleID": pres[c] = pres[c].astype(int)
+    return pres[["SampleID"] + genes], pd.DataFrame(details)
+
+def main():
+    args = parse_args()
+    genes = args.genes
+
+    ab = read_abricate_presence(args.abricate, genes)
+    bl, bl_details = read_blast_presence(args.blast_glob, genes, args.id, args.cov)
+
+    # Melt to long format for comparison
+    ab_long = ab.melt(id_vars="SampleID", var_name="Gene", value_name="ABRicate")
+    bl_long = bl.melt(id_vars="SampleID", var_name="Gene", value_name="BLAST")
+
+    merged = pd.merge(ab_long, bl_long, on=["SampleID","Gene"], how="outer").fillna(0)
+    merged["ABRicate"] = merged["ABRicate"].astype(int)
+    merged["BLAST"] = merged["BLAST"].astype(int)
+
+    # Attach BLAST details (best identity/coverage) if available
+    merged = merged.merge(bl_details, on=["SampleID","Gene"], how="left")
+
+    def status(row):
+        a, b = row["ABRicate"], row["BLAST"]
+        if a==1 and b==1: return "Agree+"
+        if a==0 and b==0: return "Agree−"
+        if a==1 and b==0: return "ABRicate_only"
+        if a==0 and b==1: return "BLAST_only"
+        return "NA"
+    merged["Status"] = merged.apply(status, axis=1)
+
+    # Discrepancies table
+    discrep = merged if args.all else merged[merged["Status"].isin(["ABRicate_only","BLAST_only"])]
+    discrep = discrep.sort_values(["Gene","Status","SampleID"])
+    discrep.to_csv(f"{args.outprefix}_discrepancies.tsv", sep="\t", index=False)
+
+    # Summary counts by gene
+    summary = (merged
+               .groupby(["Gene","Status"]).size()
+               .reset_index(name="Count")
+               .pivot(index="Gene", columns="Status", values="Count")
+               .fillna(0).astype(int)
+               .reset_index())
+    summary.to_csv(f"{args.outprefix}_agreement_summary.tsv", sep="\t", index=False)
+
+    # Wide matrix with both calls side-by-side
+    wide_parts = []
+    for src in ["ABRicate","BLAST"]:
+        w = merged.pivot_table(index="SampleID", columns="Gene", values=src, fill_value=0, aggfunc="max")
+        w.columns = [f"{src}_{c}" for c in w.columns]
+        wide_parts.append(w)
+    wide = pd.concat(wide_parts, axis=1).reset_index()
+    wide.to_csv(f"{args.outprefix}_wide.tsv", sep="\t", index=False)
+
+    print("✅ Wrote:")
+    print(f" - {args.outprefix}_discrepancies.tsv")
+    print(f" - {args.outprefix}_agreement_summary.tsv")
+    print(f" - {args.outprefix}_wide.tsv")
+    print("\nTip: open the summary to see which genes disagree most between methods.")
+
+if __name__ == "__main__":
+    main()
+```
+2️⃣ Run the script
+```
+python compare_abricate_blast.py \
+  --abricate abricate_summary.tsv \
+  --blast_glob "/home/jing/E.coli/ecoli_all/blast_out/*_genomic_hits.tsv" \
+  --id 80 --cov 0.80 \
+  --outprefix abricate_vs_blast
+```

@@ -380,10 +380,9 @@ echo "Wrote abricate_summary.tsv"
 <img width="1070" height="242" alt="image" src="https://github.com/user-attachments/assets/e9992ef4-da90-4f1e-8faf-a9e52e31d78c" />
 
 ## Make presence/absence matrix + classification
+Save as make_matrix_and_classify.py; run: python make_matrix_and_classify.py
 ```
-# save as make_matrix_and_classify.py; run: python make_matrix_and_classify.py
 import csv, pandas as pd
-
 genes = ['stx1','stx2','eae','espK','espV','Z2098','ureD']
 rows=[]
 with open("abricate_summary.tsv") as fh:

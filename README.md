@@ -684,3 +684,10 @@ python compare_abricate_blast.py \
 
 - abricate_vs_blast_wide.tsv → wide matrix: for each sample/gene, ABR (0/1) and BLAST (0/1) side-by-side.
 
+#### Check results
+
+_agreement_summary.tsv → if you see many ABRicate_only for a gene, those are usually partial/fragmented hits that ABRicate merges (or slightly below your BLAST thresholds).
+
+_discrepancies.tsv → check BLAST %identity and coverage columns to see if BLAST is just under cutoff; try rerunning comparison with --id 75 --cov 0.6 to see sensitivity.
+
+_wide.tsv → handy for quick greps: grep -E "GCA_.*\t.*_espK"

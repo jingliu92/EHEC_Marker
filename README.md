@@ -673,7 +673,7 @@ if __name__ == "__main__":
 ```
 python compare_abricate_blast.py \
   --abricate abricate_summary.tsv \
-  --blast_glob "/home/jing/E.coli/ecoli_all/blast_out/*_genomic_hits.tsv" \
+  --blast_glob "/home/jing/E.coli/blast_out/*_genomic_hits.tsv" \
   --id 80 --cov 0.80 \
   --outprefix abricate_vs_blast
 ```

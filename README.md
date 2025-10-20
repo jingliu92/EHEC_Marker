@@ -451,13 +451,16 @@ print("✅ Wrote: abricate_presence_absence.tsv and abricate_classification.tsv"
 ```
 awk 'NR==1{print; next} {sum=0; for(i=2;i<=NF;i++) sum+=$i; if(sum>0) print}' abricate_presence_absence.tsv > abricate_presence_absence_filtered.tsv
 ```
-🌀 Step 6 Check how many assemblies have hits? (2390)
+🌀 Step 6 Check how many assemblies have hits? 
+(2390 if threshold: --minid 80 --mincov 80 )
 ```
 wc -l abricate_presence_absence_filtered.tsv
 
 # 2390
 ```
 <img width="837" height="41" alt="image" src="https://github.com/user-attachments/assets/3b084a46-cd6c-44ad-972a-039052be807c" />
+(1966 if threshold: --minid 90 --mincov 90 )
+<img width="735" height="43" alt="image" src="https://github.com/user-attachments/assets/6cc6daa9-6cb4-4e34-a9ae-6cbd6220c06f" />
 
 ## 4. Comparison of two methods
 🧬 1️⃣ Methodological difference

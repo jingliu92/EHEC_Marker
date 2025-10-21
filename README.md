@@ -564,6 +564,137 @@ out = pd.DataFrame(rows, columns=["Statistics for Abricate","Genotype","Count","
 out.to_csv(OUTPUT, index=False)
 print(f"✅ Wrote summary to {OUTPUT}")
 ```
+<img width="645" height="756" alt="image" src="https://github.com/user-attachments/assets/d86474d7-c2a2-47a8-ae6b-5fcf8b920491" />
+
+🌀 Step 8 Venn Diagram
+- draws two 3-set Venns (espK/espV/espN) in the two strata **eae+ & (stx1 OR stx2)+ and 2) eae+ & (stx1 AND stx2)−**
+
+- shows counts + percentages inside each Venn region
+
+- also makes UpSet plots for the same two strata (great when labels get crowded)
+
+- writes a tidy TSV with counts and % per region
+
+Script: `venn_eae_strata_with_percents_upset.py`
+```
+#!/usr/bin/env python3
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# pip install matplotlib-venn upsetplot
+from matplotlib_venn import venn3
+from upsetplot import UpSet, from_indicators
+
+INPUT = "abricate_presence_absence_filtered.tsv"
+OUT_VENN_STXPOS = "venn_eaepos_stxpos.png"
+OUT_VENN_STXNEG = "venn_eaepos_stxneg.png"
+OUT_UPSET_STXPOS = "upset_eaepos_stxpos.png"
+OUT_UPSET_STXNEG = "upset_eaepos_stxneg.png"
+OUT_TSV = "venn_eae_strata_counts_percents.tsv"
+
+df = pd.read_csv(INPUT, sep="\t")
+
+# Ensure 0/1 ints for the fields we need
+for g in ["stx1","stx2","eae","espK","espV","espN"]:
+    df[g] = pd.to_numeric(df.get(g, 0), errors="coerce").fillna(0).astype(int)
+
+# Strata
+eae_pos = df["eae"] == 1
+stx_pos = (df["stx1"] == 1) | (df["stx2"] == 1)
+stx_neg = (df["stx1"] == 0) & (df["stx2"] == 0)
+
+def venn_counts(sub):
+    K = sub["espK"] == 1
+    V = sub["espV"] == 1
+    N = sub["espN"] == 1
+    # order for venn3: 100,010,110,001,101,011,111
+    a_only = int(( K & ~V & ~N).sum())
+    b_only = int((~K &  V & ~N).sum())
+    ab     = int(( K &  V & ~N).sum())
+    c_only = int((~K & ~V &  N).sum())
+    ac     = int(( K & ~V &  N).sum())
+    bc     = int((~K &  V &  N).sum())
+    abc    = int(( K &  V &  N).sum())
+    total  = len(sub)
+    return (a_only, b_only, ab, c_only, ac, bc, abc), total
+
+def label_with_counts_percents(v, total, subsets):
+    # Map venn region IDs to our tuple order
+    id_map = {
+        "100": 0, "010": 1, "110": 2,
+        "001": 3, "101": 4, "011": 5,
+        "111": 6
+    }
+    for vid, idx in id_map.items():
+        lab = v.get_label_by_id(vid)
+        if lab is None:
+            continue
+        cnt = subsets[idx]
+        if total > 0:
+            pct = 100.0 * cnt / total
+            lab.set_text(f"{cnt}\n({pct:.1f}%)")
+        else:
+            lab.set_text("0\n(0.0%)")
+
+def plot_venn(sub, title, outfile):
+    subsets, total = venn_counts(sub)
+    plt.figure(figsize=(6.5,6.5))
+    v = venn3(subsets=subsets, set_labels=("espK","espV","espN"))
+    label_with_counts_percents(v, total, subsets)
+    # Title with N
+    plt.title(f"{title}\nN={total}")
+    plt.tight_layout()
+    plt.savefig(outfile, dpi=200)
+    plt.close()
+    return subsets, total
+
+def make_upset(sub, title, outfile):
+    # Build boolean indicator frame for K,V,N
+    ind = sub[["espK","espV","espN"]].astype(bool)
+    u = from_indicators(ind)
+    plt.figure(figsize=(8,6))
+    UpSet(u, sort_by="cardinality").plot()
+    plt.suptitle(title)
+    plt.savefig(outfile, dpi=200, bbox_inches="tight")
+    plt.close()
+
+def table_rows(name, subsets, total):
+    # order: 100,010,110,001,101,011,111
+    keys = ["K_only","V_only","K∩V","N_only","K∩N","V∩N","K∩V∩N"]
+    rows = []
+    for k, c in zip(keys, subsets):
+        pct = round(100.0 * c / total, 2) if total else 0.0
+        rows.append([name, k, c, pct, total])
+    # add any/none
+    any_kvn = sum(subsets)  # any of K/V/N
+    none_kvn = total - any_kvn
+    rows.append([name, "any(K/V/N)", any_kvn, round(100.0*any_kvn/total,2) if total else 0.0, total])
+    rows.append([name, "none(K/V/N)", none_kvn, round(100.0*none_kvn/total,2) if total else 0.0, total])
+    return rows
+
+# 1) eae+ & stx+
+sub_pos = df[eae_pos & stx_pos].copy()
+s1, n1 = plot_venn(sub_pos, "eae+ AND (stx1 OR stx2)+", OUT_VENN_STXPOS)
+make_upset(sub_pos, "UpSet: eae+ AND (stx1 OR stx2)+", OUT_UPSET_STXPOS)
+
+# 2) eae+ & stx−
+sub_neg = df[eae_pos & stx_neg].copy()
+s2, n2 = plot_venn(sub_neg, "eae+ AND (stx1 AND stx2)−", OUT_VENN_STXNEG)
+make_upset(sub_neg, "UpSet: eae+ AND (stx1 AND stx2)−", OUT_UPSET_STXNEG)
+
+# Write table
+rows = []
+rows += table_rows("eae+ & stx+", s1, n1)
+rows += table_rows("eae+ & stx−", s2, n2)
+pd.DataFrame(rows, columns=["Stratum","Region","Count","Percent(%)","N"]).to_csv(OUT_TSV, index=False)
+
+print("✅ Wrote:")
+print(f" - {OUT_VENN_STXPOS}")
+print(f" - {OUT_VENN_STXNEG}")
+print(f" - {OUT_UPSET_STXPOS}")
+print(f" - {OUT_UPSET_STXNEG}")
+print(f" - {OUT_TSV}")
+```
 
 ## 4. Comparison of two methods
 🧬 1️⃣ Methodological difference

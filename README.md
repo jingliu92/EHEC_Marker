@@ -176,7 +176,6 @@ find ./blast_hits_only -type f -name "*_hits.tsv" -print0 | while IFS= read -r -
   echo "Added header to: $f"
 done
 ```
-
 🌀 Step 7: Summarize presence/absence (Python)
 
 - Reads all .tsv files in a folder
@@ -464,7 +463,9 @@ wc -l abricate_presence_absence_filtered.tsv
 (1966 if threshold: --minid 90 --mincov 90 )
 
 <img width="735" height="43" alt="image" src="https://github.com/user-attachments/assets/6cc6daa9-6cb4-4e34-a9ae-6cbd6220c06f" />
+
 🌀 Step 7 Statistical analysis
+
 nano abricate_statistics_summary.py
 ```
 #!/usr/bin/env python3

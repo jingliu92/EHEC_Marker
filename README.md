@@ -464,6 +464,105 @@ wc -l abricate_presence_absence_filtered.tsv
 (1966 if threshold: --minid 90 --mincov 90 )
 
 <img width="735" height="43" alt="image" src="https://github.com/user-attachments/assets/6cc6daa9-6cb4-4e34-a9ae-6cbd6220c06f" />
+🌀 Step 7 Statistical analysis
+nano abricate_statistics_summary.py
+```
+#!/usr/bin/env python3
+import pandas as pd
+
+INPUT  = "abricate_presence_absence_filtered.tsv"
+OUTPUT = "abricate_statistics_summary.csv"
+
+GENES = ["stx1","stx2","eae","espK","espV","espN"]
+
+df = pd.read_csv(INPUT, sep="\t")
+
+# Ensure all genes exist and are numeric
+for g in GENES:
+    if g not in df.columns:
+        df[g] = 0
+    df[g] = pd.to_numeric(df[g], errors="coerce").fillna(0).astype(int)
+
+n = len(df)
+def count(mask): return int(mask.sum())
+def pct(mask):   return round(100 * count(mask) / n, 2) if n else 0.0
+
+rows = []
+def add_row(stat, genotype, mask):
+    rows.append([stat, genotype, count(mask), pct(mask)])
+
+# ---------------- BASIC ----------------
+add_row("Total isolates", "", pd.Series([True]*n))
+add_row("stx1/stx2(+) (this means Stx1 OR Stx2)", "", (df.stx1==1)|(df.stx2==1))
+add_row("stx1(+)", "", df.stx1==1)
+add_row("stx2(+)", "", df.stx2==1)
+# NEW: double-positive
+add_row("stx1(+)&stx2(+) (both stx1 and stx2 present)", "", (df.stx1==1)&(df.stx2==1))
+
+add_row("stx1+stx2(-) (this means both stx1 and stx2 are absent)", "", (df.stx1==0)&(df.stx2==0))
+add_row("eae(+)", "", df.eae==1)
+add_row("eae(-)", "", df.eae==0)
+add_row("espK(+)", "", df.espK==1)
+add_row("espK/V(+) (espK AND espV positive)", "", (df.espK==1)&(df.espV==1))
+add_row("espV(+)", "", df.espV==1)
+add_row("espK AND/OR espV", "", (df.espK==1)|(df.espV==1))
+add_row("espN(+)", "", df.espN==1)
+add_row("espK/N (+) (espK AND espN positive)", "", (df.espK==1)&(df.espN==1))
+add_row("espK AND/OR espN", "", (df.espK==1)|(df.espN==1))
+
+# ---------------- NOT STEC/EPEC/EHEC ----------------
+add_row("stx1+stx2(-) AND eae(-)", "NOT STEC/EPEC/EHEC", (df.stx1==0)&(df.stx2==0)&(df.eae==0))
+add_row("stx1+stx2(-) AND eae(-) AND espK(+)", "NOT STEC/EPEC/EHEC", (df.stx1==0)&(df.stx2==0)&(df.eae==0)&(df.espK==1))
+add_row("stx1+stx2(-) AND eae(-) AND espN(+)", "NOT STEC/EPEC/EHEC", (df.stx1==0)&(df.stx2==0)&(df.eae==0)&(df.espN==1))
+add_row("stx1+stx2(-) AND eae(-) AND espV(+)", "NOT STEC/EPEC/EHEC", (df.stx1==0)&(df.stx2==0)&(df.eae==0)&(df.espV==1))
+
+# ---------------- EPEC ----------------
+add_row("stx1+stx2(-) AND eae(+)", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1))
+add_row("stx1+stx2(-) AND eae(+) AND espK(+)", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&(df.espK==1))
+add_row("stx1+stx2(-) AND eae(+) AND espV(+)", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&(df.espV==1))
+add_row("stx1+stx2(-) AND eae(+) AND espN(+)", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&(df.espN==1))
+add_row("stx1+stx2(-) AND eae(+) AND {espK(+) AND/OR espV(+)}", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&((df.espK==1)|(df.espV==1)))
+add_row("stx1+stx2(-) AND eae(+) AND {espK(+) AND espV(+)}", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&(df.espK==1)&(df.espV==1))
+add_row("stx1+stx2(-) AND eae(+) AND {espK(+) AND/OR espN(+)}", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&((df.espK==1)|(df.espN==1)))
+add_row("stx1+stx2(-) AND eae(+) AND {espK(+) AND espN(+)}", "EPEC cohorts", (df.stx1==0)&(df.stx2==0)&(df.eae==1)&(df.espK==1)&(df.espN==1))
+
+# ---------------- EHEC ----------------
+add_row("stx1+stx2(+) AND eae(+)", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1))
+add_row("stx1+stx2(+) AND eae(+) AND espK(+)", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&(df.espK==1))
+add_row("stx1+stx2(+) AND eae(+) AND espV(+)", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&(df.espV==1))
+add_row("stx1+stx2(+) AND eae(+) AND espN(+)", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&(df.espN==1))
+add_row("stx1+stx2(+) AND eae(+) AND {espK(+) AND/OR espV(+)}", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&((df.espK==1)|(df.espV==1)))
+add_row("stx1+stx2(+) AND eae(+) AND {espK(+) AND espV(+)}", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&(df.espK==1)&(df.espV==1))
+add_row("stx1+stx2(+) AND eae(+) AND {espK(+) AND/OR espN(+)}", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&((df.espK==1)|(df.espN==1)))
+add_row("stx1+stx2(+) AND eae(+) AND {espK(+) AND espN(+)}", "EHEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==1)&(df.espK==1)&(df.espN==1))
+
+# ---------------- STEC ----------------
+add_row("stx1+stx2(+) AND eae(-)", "Pathovars", ((df.stx1==1)|(df.stx2==1))&(df.eae==0))
+add_row("stx1+stx2(+) AND eae(-) AND espK(+)", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&(df.espK==1))
+add_row("stx1+stx2(+) AND eae(-) AND espV(+)", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&(df.espV==1))
+add_row("stx1+stx2(+) AND eae(-) AND espN(+)", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&(df.espN==1))
+add_row("stx1+stx2(+) AND eae(-) AND {espK(+) AND/OR espV(+)}", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&((df.espK==1)|(df.espV==1)))
+add_row("stx1+stx2(+) AND eae(-) AND {espK(+) AND espV(+)}", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&(df.espK==1)&(df.espV==1))
+add_row("stx1+stx2(+) AND eae(-) AND {espK(+) AND/OR espN(+)}", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&((df.espK==1)|(df.espN==1)))
+add_row("stx1+stx2(+) AND eae(-) AND {espK(+) AND espN(+)}", "STEC cohorts", ((df.stx1==1)|(df.stx2==1))&(df.eae==0)&(df.espK==1)&(df.espN==1))
+
+# ---------------- eae(+) triple-marker patterns ----------------
+E = df.eae==1
+K,V,N = (df.espK==1),(df.espV==1),(df.espN==1)
+add_row("eae(+) & espK only", "", E &  K & ~V & ~N)
+add_row("eae(+) & espV only", "", E & ~K &  V & ~N)
+add_row("eae(+) & espN only", "", E & ~K & ~V &  N)
+add_row("eae(+) & espK+espV", "", E &  K &  V & ~N)
+add_row("eae(+) & espK+espN", "", E &  K & ~V &  N)
+add_row("eae(+) & espV+espN", "", E & ~K &  V &  N)
+add_row("eae(+) & espK+espV+espN", "", E &  K &  V &  N)
+add_row("eae(+) & any(espK/espV/espN)", "", E & (K|V|N))
+add_row("eae(+) & none(espK/espV/espN)", "", E & ~(K|V|N))
+
+out = pd.DataFrame(rows, columns=["Statistics for Abricate","Genotype","Count","Percent(%)"])
+out.to_csv(OUTPUT, index=False)
+print(f"✅ Wrote summary to {OUTPUT}")
+```
 
 ## 4. Comparison of two methods
 🧬 1️⃣ Methodological difference

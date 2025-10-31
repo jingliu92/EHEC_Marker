@@ -1076,6 +1076,157 @@ cp intimin_subtypes.fasta /home/jing/miniconda3/envs/abricate/db/intimin_subtype
 abricate --setupdb
 abricate --list   # should now show intimin_subtypes
 ```
+✅ This makes a custom Abricate database called intimin_subtypes.
 
 
+Step 2. Split assemblies by classification
+Extract the list of EHEC and EPEC assembly IDs from previous analysis.
+Save as `classify_ehec_epec.py` in the same folder as your TSV and run `python classify_ehec_epec.py`.
+```
+#!/usr/bin/env python3
+import re
+import pandas as pd
+
+IN = "abricate_presence_absence_filtered.tsv"
+
+# 1) Load
+df = pd.read_csv(IN, sep="\t")
+
+# 2) Extract a clean sample ID from the Sample path
+#    Prefer the first GCA/GCF accession; fallback to basename without .tsv
+def extract_id(s):
+    if pd.isna(s):
+        return None
+    m = re.search(r"(GC[AF]_\d+\.\d+)", str(s))
+    if m:
+        return m.group(1)
+    # fallback: basename without extension
+    base = str(s).split("/")[-1]
+    return re.sub(r"\.tsv$", "", base)
+
+if "Sample" not in df.columns:
+    # Some earlier runs used 'sample' lowercase
+    sample_col = [c for c in df.columns if c.lower()=="sample"][0]
+    df.rename(columns={sample_col: "Sample"}, inplace=True)
+
+df["sample"] = df["Sample"].apply(extract_id)
+
+# 3) Ensure gene columns are numeric 0/1
+for col in ["stx1","stx2","eae"]:
+    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+
+# 4) Classify
+df["pathovar"] = "Other"
+df.loc[(df["eae"]==1) & ((df["stx1"]==1) | (df["stx2"]==1)), "pathovar"] = "EHEC"
+df.loc[(df["eae"]==1) & ((df["stx1"]==0) & (df["stx2"]==0)), "pathovar"] = "EPEC"
+
+# 5) Write lists
+ehec_ids = df.loc[df["pathovar"]=="EHEC", "sample"].dropna().drop_duplicates()
+epec_ids = df.loc[df["pathovar"]=="EPEC", "sample"].dropna().drop_duplicates()
+
+ehec_ids.to_csv("EHEC_list.txt", index=False, header=False)
+epec_ids.to_csv("EPEC_list.txt", index=False, header=False)
+
+# 6) Save a small mapping table (useful later)
+df[["sample","pathovar","stx1","stx2","eae"]].to_csv(
+    "ehec_epec_classification.tsv", sep="\t", index=False
+)
+
+print(f"EHEC: {len(ehec_ids)} isolates → EHEC_list.txt")
+print(f"EPEC: {len(epec_ids)} isolates → EPEC_list.txt")
+print("Saved: ehec_epec_classification.tsv")
+```
+
+Step 3 — Separate assemblies by pathovar and run Abricate
+I already have assembly folders,`/home/jing/E.coli/ecoli_all/` containing .fna files.
+I’ll copy files listed in the pathovar lists:
+```
+mkdir -p EHEC_assemblies EPEC_assemblies
+
+while read id; do
+  find /home/jing/E.coli/ecoli_all -name "${id}*.fna" -exec cp {} EHEC_assemblies/ \;
+done < EHEC_list.txt
+
+while read id; do
+  find /home/jing/E.coli/ecoli_all -name "${id}*.fna" -exec cp {} EPEC_assemblies/ \;
+done < EPEC_list.txt
+```
+Step 3. Run Abricate on each set
+🧬 EHEC
+```
+mkdir -p abricate_intimin_EHEC
+for f in EHEC_assemblies/*.fna; do
+  base=$(basename "$f" .fna)
+  abricate --db intimin_subtypes --minid 90 --mincov 90 "$f" > abricate_intimin_EHEC/${base}.tsv
+done
+abricate --summary abricate_intimin_EHEC/*.tsv > abricate_intimin_EHEC_summary.tsv
+```
+🧬 EPEC
+```
+mkdir -p abricate_intimin_EPEC
+for f in EPEC_assemblies/*.fna; do
+  base=$(basename "$f" .fna)
+  abricate --db intimin_subtypes --minid 90 --mincov 90 "$f" > abricate_intimin_EPEC/${base}.tsv
+done
+abricate --summary abricate_intimin_EPEC/*.tsv > abricate_intimin_EPEC_summary.tsv
+```
+
+Step 4 — Summarize results (counts & percentages)
+Create a new script named `summarize_intimin_subtypes.py`:
+```
+#!/usr/bin/env python3
+import pandas as pd
+
+def summarize_from_summary(file, label):
+    # Load abricate summary
+    df = pd.read_csv(file, sep="\t")
+    
+    # Drop the first two metadata columns (#FILE, NUM_FOUND)
+    data = df.drop(columns=[df.columns[0], df.columns[1]])
+
+    # Convert "." to NaN and non-numeric values to NaN
+    data = data.replace(".", pd.NA)
+
+    # Count non-empty cells per column (i.e. isolates with hits)
+    counts = data.notna().sum().reset_index()
+    counts.columns = ["Subtype_ID", f"{label}_Count"]
+
+    # Calculate percentage
+    total = len(df)
+    counts[f"{label}_Percent(%)"] = (counts[f"{label}_Count"] / total * 100).round(2)
+    counts["Pathovar"] = label
+
+    return counts
+
+# Summarize EHEC and EPEC datasets
+ehec = summarize_from_summary("abricate_intimin_EHEC_summary.tsv", "EHEC")
+epec = summarize_from_summary("abricate_intimin_EPEC_summary.tsv", "EPEC")
+
+# Merge both summaries
+combined = pd.merge(ehec, epec, on="Subtype_ID", how="outer").fillna(0)
+combined = combined[["Subtype_ID", "EHEC_Count", "EHEC_Percent(%)", "EPEC_Count", "EPEC_Percent(%)"]]
+
+# Map reference IDs to meaningful subtype names
+subtype_map = {
+    "AE005174.2:4665441-4668245": "Gamma intimin",
+    "AF530555.1:1-2820": "Alpha 2 intimin",
+    "FJ609798.1:125-2944": "Alpha 1 intimin",
+    "NZ_CYEM01000006.1:123342-126161": "Beta intimin",
+    "ABTGRD020000040.1:24956-27802": "Epsilon intimin"
+}
+
+combined["Subtype_Name"] = combined["Subtype_ID"].map(subtype_map)
+combined = combined[["Subtype_Name", "Subtype_ID", "EHEC_Count", "EHEC_Percent(%)", "EPEC_Count", "EPEC_Percent(%)"]]
+
+# Save output
+combined.to_csv("intimin_subtype_distribution_combined.csv", index=False)
+print("\n✅ Intimin subtype summary created successfully!\n")
+print(combined)
+
+```
+Run it:
+```
+python summarize_intimin_subtypes.py
+```
+<img width="929" height="127" alt="image" src="https://github.com/user-attachments/assets/0cea76fa-6285-47e0-b0de-8e6cb024cd6c" />
 

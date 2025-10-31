@@ -1056,11 +1056,26 @@ ACCAAGGCCAGCATTACTGAGATTAAGGCTGATAAAACAACAGCGAAGGCAAATGGTTCTGATGCGATTACCTATATTGT
 ## 1.2 Use Abricate on Pre-classified EHEC & EPEC Assemblies to Calculate the counts and percentages
 ✅ Overview
 You already have:
-A table of assemblies classified as EHEC or EPEC based on stx1/stx2/eae presence (.
+A table of assemblies classified as EHEC or EPEC based on stx1/stx2/eae presence (`abricate_presence_absence_filtered(ide90cov90).tsv`).
 A FASTA reference (intimin_subtypes.fasta) containing eae subtype sequences (γ, α1, α2, β, ε).
 
 We’ll now:
 - Separate assemblies into EHEC and EPEC folders.
 - Run Abricate using intimin_subtypes database.
 - Summarize counts and percentages of each eae subtype within each group.
+
+Step 1. Create subtype database for Abricate
+
 ```
+mkdir eae_subtype
+cd eae_subtype
+nano intimin_subtypes.fasta
+
+mkdir -p /home/jing/miniconda3/envs/abricate/db/intimin_subtypes
+cp intimin_subtypes.fasta /home/jing/miniconda3/envs/abricate/db/intimin_subtypes/sequences
+abricate --setupdb
+abricate --list   # should now show intimin_subtypes
+```
+
+
+

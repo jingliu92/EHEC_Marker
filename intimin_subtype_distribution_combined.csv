@@ -1,0 +1,6 @@
+Subtype_Name,Subtype_ID,EHEC_Count,EHEC_Percent(%),EPEC_Count,EPEC_Percent(%)
+Epsilon intimin,ABTGRD020000040.1:24956-27802,87.0,7.81,46,13.57
+Gamma intimin,AE005174.2:4665441-4668245,673.0,60.41,53,15.63
+Alpha 2 intimin,AF530555.1:1-2820,0.0,0.0,10,2.95
+Alpha 1 intimin,FJ609798.1:125-2944,0.0,0.0,13,3.83
+Beta intimin,NZ_CYEM01000006.1:123342-126161,0.0,0.0,14,4.13

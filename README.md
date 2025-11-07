@@ -1157,7 +1157,7 @@ Step 3. Run Abricate on each set
 mkdir -p abricate_intimin_EHEC
 for f in EHEC_assemblies/*.fna; do
   base=$(basename "$f" .fna)
-  abricate --db intimin_subtypes --minid 80 --mincov 90 "$f" > abricate_intimin_EHEC/${base}.tsv
+  abricate --db intimin_subtypes --minid 90 --mincov 90 "$f" > abricate_intimin_EHEC/${base}.tsv
 done
 abricate --summary abricate_intimin_EHEC/*.tsv > abricate_intimin_EHEC_summary.tsv
 ```
@@ -1166,7 +1166,7 @@ abricate --summary abricate_intimin_EHEC/*.tsv > abricate_intimin_EHEC_summary.t
 mkdir -p abricate_intimin_EPEC
 for f in EPEC_assemblies/*.fna; do
   base=$(basename "$f" .fna)
-  abricate --db intimin_subtypes --minid 80 --mincov 90 "$f" > abricate_intimin_EPEC/${base}.tsv
+  abricate --db intimin_subtypes --minid 90 --mincov 90 "$f" > abricate_intimin_EPEC/${base}.tsv
 done
 abricate --summary abricate_intimin_EPEC/*.tsv > abricate_intimin_EPEC_summary.tsv
 ```

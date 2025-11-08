@@ -1208,16 +1208,16 @@ combined = combined[["Subtype_ID", "EHEC_Count", "EHEC_Percent(%)", "EPEC_Count"
 
 # Map reference IDs to meaningful subtype names
 subtype_map = {
-    "AE005174.2:4665441-4668245": "Gamma intimin",
-    "AF530555.1:1-2820": "Alpha 2 intimin",
-    "FJ609798.1:125-2944": "Alpha 1 intimin",
-    "NZ_CYEM01000006.1:123342-126161": "Beta intimin",
-    "ABTGRD020000040.1:24956-27802": "Epsilon intimin",
-    "AJ781125.1:1-2808": "Sigma intimin",
-    "DQ523607.1:125-2932": "Mu intimin",
-    "KT591250.1:1-2808": "Theta intimin",
-    "FM872416.1:113-2920": "TAU intimin",
-    "DQ523613.1:126-2954": "Rho intimin",
+    "eae_gamma": "Gamma intimin",
+    "eae_alpha2": "Alpha 2 intimin",
+    "eae_alpha1": "Alpha 1 intimin",
+    "eae_beta": "Beta intimin",
+    "eae_epsilon": "Epsilon intimin",
+    "eae_sigma": "Sigma intimin",
+    "eae_mu": "Mu intimin",
+    "eae_theta": "Theta intimin",
+    "eae_tau": "TAU intimin",
+    "eae_RHO": "Rho intimin",
 }
 
 combined["Subtype_Name"] = combined["Subtype_ID"].map(subtype_map)

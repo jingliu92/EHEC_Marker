@@ -1236,4 +1236,17 @@ python summarize_intimin_subtypes.py
 <img width="929" height="127" alt="image" src="https://github.com/user-attachments/assets/0cea76fa-6285-47e0-b0de-8e6cb024cd6c" />
 
 # Serotyping EHEC (1114 isolates) and EPEC (339 isolates) strains
-## Option 1: ECTyper (an easy typer) (https://github.com/phac-nml/ecoli_serotyping) (https://pmc.ncbi.nlm.nih.gov/articles/PMC8767331/#s5)
+### Option 1: ECTyper (an easy typer) 
+(https://github.com/phac-nml/ecoli_serotyping) (https://pmc.ncbi.nlm.nih.gov/articles/PMC8767331/#s5)
+1. Install ECTyper
+```
+conda install -c bioconda ectyper
+```
+
+2. Run ECTyper
+```
+ectyper -i EHEC_assemblies/*.fna -o EHEC_Serotype
+ectyper -i EPEC_assemblies/*.fna -o EPEC_Serotype
+```
+
+

@@ -311,7 +311,7 @@ if __name__ == "__main__":
 ```
 🌀 Step 8: Run the script
 ```
-python make_presence_matrix.py --glob "/home/jing/E.coli/blast_hits_only/*.tsv"
+python make_presence_matrix.py --glob "/home/jing/E.coli/blast_results/blast_hits_only/*.tsv"
 ```
 #### Presence and absence matrix
 <img width="819" height="352" alt="image" src="https://github.com/user-attachments/assets/5c40d019-5f9e-4321-a517-aee62f9cfe03" />

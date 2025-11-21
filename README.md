@@ -388,7 +388,198 @@ while read id; do
   find /home/jing/E.coli/ecoli_all -name "${id}*.fna" -exec cp {} EPEC_assemblies/ \;
 done < EPEC_list.txt
 
+### Run BLAST for each EHEC assembly against your intimin subtype database
+```
+#!/bin/bash
 
+DB="intimin_subtypes"
+mkdir -p blast_intimin_EHEC
+
+# 1. Make BLAST DB (only once)
+if [ ! -f ${DB}.nin ]; then
+    makeblastdb -in intimin_subtypes.fasta -dbtype nucl -out ${DB}
+fi
+
+# 2. Run BLAST for each EHEC genome
+for f in EHEC_assemblies/*.fna; do
+    base=$(basename "$f" .fna)
+
+    blastn \
+      -query intimin_subtypes.fasta \
+      -subject "$f" \
+      -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send evalue bitscore" \
+    | awk '{
+        cov = ($4 / $5) * 100;
+        if ($3 >= 95 && cov >= 90) print $0;
+    }' > blast_intimin_EHEC/${base}.tsv
+done
+
+echo "BLAST finished for all EHEC assemblies."
+
+# 3. Create summary (similar to abricate --summary)
+echo -e "FILE\tNUM_FOUND\t$(awk '/^>/{printf "%s\t", substr($0,2)}' intimin_subtypes.fasta)" > blast_intimin_EHEC_summary.tsv
+
+for tsv in blast_intimin_EHEC/*.tsv; do
+    base=$(basename "$tsv")
+
+    # Count hits per subtype
+    line="$base"
+    num=$(wc -l < "$tsv")
+    line="$line\t$num"
+
+    for subtype in $(awk '/^>/{print substr($0,2)}' intimin_subtypes.fasta); do
+        # check if subtype appears in qseqid column
+        if grep -q "^${subtype}" "$tsv"; then
+            # extract % identity and coverage of first hit
+            hit=$(grep "^${subtype}" "$tsv" | head -n 1)
+            ident=$(echo "$hit" | awk '{print $3}')
+            length=$(echo "$hit" | awk '{print $4}')
+            qlen=$(echo "$hit" | awk '{print $5}')
+            cov=$(awk -v l="$length" -v q="$qlen" 'BEGIN{print (l/q)*100}')
+            line="$line\t$(printf "%.2f;%.2f" $ident $cov)"
+        else
+            line="$line\t."
+        fi
+    done
+
+    echo -e "$line" >> blast_intimin_EHEC_summary.tsv
+done
+
+echo "Summary file generated: blast_intimin_EHEC_summary.tsv"
+```
+ nano blast_intimin_EPEC.sh
+```
+#!/bin/bash
+
+DB="intimin_subtypes"
+mkdir -p blast_intimin_EPEC
+
+# 1. Make BLAST DB (only once – reuse same DB as EHEC)
+if [ ! -f ${DB}.nin ]; then
+    makeblastdb -in intimin_subtypes.fasta -dbtype nucl -out ${DB}
+fi
+
+# 2. Run BLAST for each EPEC genome
+for f in EPEC_assemblies/*.fna; do
+    base=$(basename "$f" .fna)
+
+    blastn \
+      -query intimin_subtypes.fasta \
+      -subject "$f" \
+      -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send evalue bitscore" \
+    | awk '{
+        cov = ($4 / $5) * 100;
+        if ($3 >= 95 && cov >= 90) print $0;
+    }' > blast_intimin_EPEC/${base}.tsv
+done
+
+echo "BLAST finished for all EPEC assemblies."
+
+# 3. Create summary file similar to abricate --summary
+echo -e "FILE\tNUM_FOUND\t$(awk '/^>/{printf "%s\t", substr($0,2)}' intimin_subtypes.fasta)" > blast_intimin_EPEC_summary.tsv
+
+for tsv in blast_intimin_EPEC/*.tsv; do
+    base=$(basename "$tsv")
+
+    # Count hits per genome
+    line="$base"
+    num=$(wc -l < "$tsv")
+    line="$line\t$num"
+
+    # For each subtype (FASTA header), check if present in qseqid column
+    for subtype in $(awk '/^>/{print substr($0,2)}' intimin_subtypes.fasta); do
+        if grep -q "^${subtype}" "$tsv"; then
+            hit=$(grep "^${subtype}" "$tsv" | head -n 1)
+            ident=$(echo "$hit" | awk '{print $3}')
+            length=$(echo "$hit" | awk '{print $4}')
+            qlen=$(echo "$hit" | awk '{print $5}')
+            cov=$(awk -v l="$length" -v q="$qlen" 'BEGIN{print (l/q)*100}')
+            line="$line\t$(printf "%.2f;%.2f" $ident $cov)"
+        else
+            line="$line\t."
+        fi
+    done
+
+    echo -e "$line" >> blast_intimin_EPEC_summary.tsv
+done
+
+echo "Summary file generated: blast_intimin_EPEC_summary.tsv"
+```
+
+#### Summary
+#!/usr/bin/env python3
+import pandas as pd
+
+def summarize_from_summary(file, label):
+    """
+    Summarize BLAST intimin subtype results for one group (EHEC or EPEC).
+
+    Assumes columns:
+    FILE, NUM_FOUND, Gamma, Sigma, Mu, THETA, TAU, alpha_2, alpha_1, beta, ...
+    and cells contain strings like '99.76;100.00' or '.'.
+    """
+    df = pd.read_csv(file, sep="\t")
+
+    # Subtype columns = everything after FILE and NUM_FOUND
+    subtype_cols = df.columns[2:]
+
+    # Replace '.' and empty strings with NA
+    data = df[subtype_cols].replace([".", ""], pd.NA)
+
+    # Count non-empty cells per subtype (presence/absence)
+    counts = data.notna().sum().reset_index()
+    counts.columns = ["Subtype_ID", f"{label}_Count"]
+
+    # Total number of genomes in this group
+    total = len(df)
+    counts[f"{label}_Percent(%)"] = (counts[f"{label}_Count"] / total * 100).round(2)
+
+    return counts
+
+# ---- Summarize EHEC and EPEC BLAST summaries ----
+ehec = summarize_from_summary("blast_intimin_EHEC_summary.tsv", "EHEC")
+epec = summarize_from_summary("blast_intimin_EPEC_summary.tsv", "EPEC")
+
+# ---- Merge both summaries ----
+combined = pd.merge(ehec, epec, on="Subtype_ID", how="outer").fillna(0)
+
+# Optional: map to nicer names (if you want e.g. 'Gamma intimin' labels)
+subtype_map = {
+    "Gamma":   "Gamma intimin",
+    "Sigma":   "Sigma intimin",
+    "Mu":      "Mu intimin",
+    "THETA":   "Theta intimin",
+    "TAU":     "Tau intimin",
+    "alpha_1": "Alpha 1 intimin",
+    "alpha_2": "Alpha 2 intimin",
+    "beta":    "Beta intimin",
+    "RHO":     "Rho intimin",
+    "Epsilon": "Epsilon intimin",
+    "Kappa":   "Kappa intimin",
+    "lambda":  "Lambda intimin",
+    "zeta":    "Zeta intimin",
+    "eta":     "Eta intimin",
+    "xi":      "Xi intimin",
+    "nu":      "Nu intimin",
+    "omicron":"Omicron intimin",
+    "pi":      "Pi intimin",
+    "UPSILON":"Upsilon intimin",
+}
+
+combined["Subtype_Name"] = combined["Subtype_ID"].map(subtype_map).fillna(combined["Subtype_ID"])
+
+# Reorder columns nicely
+combined = combined[
+    ["Subtype_Name", "Subtype_ID",
+     "EHEC_Count", "EHEC_Percent(%)",
+     "EPEC_Count", "EPEC_Percent(%)"]
+]
+
+# ---- Save output ----
+combined.to_csv("intimin_subtype_distribution_combined.csv", index=False)
+print("\n✅ Intimin subtype summary created successfully!\n")
+print(combined)
+```
 ### 3.2 Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)
 ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:

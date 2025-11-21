@@ -316,6 +316,79 @@ python make_presence_matrix.py --glob "/home/jing/E.coli/blast_results/blast_hit
 #### Presence and absence matrix
 <img width="819" height="352" alt="image" src="https://github.com/user-attachments/assets/5c40d019-5f9e-4321-a517-aee62f9cfe03" />
 
+#### Classification EHEC or EPEC
+nano classify_EHEC_EPEC_from_blast.py
+```
+#!/usr/bin/env python3
+import re
+import pandas as pd
+import os
+
+IN = "blast_presence_absence.tsv"
+
+# 1) Load
+df = pd.read_csv(IN, sep="\t")
+
+# 2) Extract clean sample ID (GCA/GCF)
+def extract_id(s):
+    if pd.isna(s):
+        return None
+    m = re.search(r"(GC[AF]_\d+\.\d+)", str(s))
+    if m:
+        return m.group(1)
+    return str(s).split("/")[-1].replace("_genomic_hits", "").strip()
+
+if "Sample" not in df.columns:
+    # Fallback if lowercase
+    sample_col = [c for c in df.columns if c.lower() == "sample"][0]
+    df.rename(columns={sample_col: "Sample"}, inplace=True)
+
+df["sample"] = df["Sample"].apply(extract_id)
+
+# 3) Make sure marker columns exist and convert to numeric
+for col in ["stx1", "stx2", "eae"]:
+    if col not in df.columns:
+        raise ValueError(f"Missing column: {col}")
+    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+
+# 4) Define pathovar
+df["pathovar"] = "Other"
+df.loc[(df["eae"] == 1) & ((df["stx1"] == 1) | (df["stx2"] == 1)), "pathovar"] = "EHEC"
+df.loc[(df["eae"] == 1) & ((df["stx1"] == 0) & (df["stx2"] == 0)), "pathovar"] = "EPEC"
+
+# 5) Export lists
+ehec_list = df.loc[df["pathovar"] == "EHEC", "sample"].dropna().drop_duplicates()
+epec_list = df.loc[df["pathovar"] == "EPEC", "sample"].dropna().drop_duplicates()
+
+ehec_list.to_csv("EHEC_list.txt", index=False, header=False)
+epec_list.to_csv("EPEC_list.txt", index=False, header=False)
+
+# 6) Save classification table
+out_class = "ehec_epec_classification.tsv"
+df[["sample", "pathovar", "stx1", "stx2", "eae"]].to_csv(out_class, sep="\t", index=False)
+
+# 7) Print summary
+print(f"✅ Classification complete from {IN}")
+print(f"  EHEC: {len(ehec_list)} isolates → EHEC_list.txt")
+print(f"  EPEC: {len(epec_list)} isolates → EPEC_list.txt")
+print(f"  Saved summary: {out_class}")
+```
+<img width="506" height="50" alt="image" src="https://github.com/user-attachments/assets/fab0e14c-104d-44e5-a359-fe9e5bf3864d" />
+### Separate assemblies by pathovar and run Abricate
+I already have assembly folders,`/home/jing/E.coli/ecoli_all/` containing .fna files.
+I’ll copy files listed in the pathovar lists:
+```
+mkdir -p EHEC_assemblies EPEC_assemblies
+
+while read id; do
+  find /home/jing/E.coli/ecoli_all -name "${id}*.fna" -exec cp {} EHEC_assemblies/ \;
+done < EHEC_list.txt
+
+while read id; do
+  find /home/jing/E.coli/ecoli_all -name "${id}*.fna" -exec cp {} EPEC_assemblies/ \;
+done < EPEC_list.txt
+
+
 ### 3.2 Option 2: Use package ABRicate.
 #### What is ABRicate? (https://github.com/tseemann/abricate)
 ABRicate is a bioinformatics tool specifically designed to screen bacterial genome assemblies (or contigs) for the presence of known genes of interest, such as:
